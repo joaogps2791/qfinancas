@@ -44,21 +44,23 @@ Marque os itens com `[x]` conforme forem ficando prontos.
 
 **Objetivo:** o app abre no Windows, faz login e já consegue lançar e listar transações na estrutura nova, mesmo que ainda com visual simples.
 
-- [ ] Criar o projeto com `electron-vite` (React + TS) na raiz da pasta.
-- [ ] Configurar a janela principal: tamanho mínimo 1100×700, lembrar tamanho e posição, barra de título própria (`titleBarStyle: "hidden"` + `titleBarOverlay` com as cores do tema).
-- [ ] `preload.ts` com uma API mínima: tema do sistema, notificações, guardar/ler segredos (`safeStorage`), abrir arquivo, salvar arquivo, abrir link no navegador.
-- [ ] Firebase SDK pelo npm, com `initializeFirestore` usando `persistentLocalCache` (assim o app abre rápido e mostra os dados mesmo se a internet cair por um tempo).
-- [ ] **Login:**
+- [x] Criar o projeto com `electron-vite` (React + TS) na raiz da pasta.
+- [x] Configurar a janela principal: tamanho mínimo 1100×700, lembrar tamanho e posição, barra de título própria (`titleBarStyle: "hidden"` + `titleBarOverlay` com as cores do tema).
+- [x] `preload.ts` com uma API mínima: tema do sistema, notificações, guardar/ler segredos (`safeStorage`), abrir arquivo, salvar arquivo, abrir link no navegador.
+- [x] Firebase SDK pelo npm, com `initializeFirestore` usando `persistentLocalCache` (assim o app abre rápido e mostra os dados mesmo se a internet cair por um tempo).
+- [x] **Login:**
   - E-mail e senha funcionam normalmente no Electron.
   - Login com Google: o `signInWithPopup` não funciona direito dentro do Electron. Implementar o fluxo abrindo o navegador padrão do sistema (OAuth com redirecionamento para `http://127.0.0.1:<porta>` no processo principal) e entrar no Firebase com `signInWithCredential`. Se isso travar a fase, entregar primeiro só e-mail/senha e deixar o Google como pendência anotada aqui.
-- [ ] **Estrutura de dados nova, começando do zero.** O João decidiu que **não precisa migrar nem guardar os dados antigos**. Não escreva código de migração nem de backup do formato antigo.
+  - **Pendência:** o código do Google está pronto (`src/main/googleAuth.ts`), mas só funciona depois que o João criar um cliente OAuth do tipo "App para computador" no Google Cloud do projeto `qfinancas-fc5bc` e colocar `MAIN_VITE_GOOGLE_CLIENT_ID` e `MAIN_VITE_GOOGLE_CLIENT_SECRET` no `.env`. Ainda não foi testado de ponta a ponta.
+- [x] **Estrutura de dados nova, começando do zero.** O João decidiu que **não precisa migrar nem guardar os dados antigos**. Não escreva código de migração nem de backup do formato antigo.
   - `users/{uid}/transactions/{id}`: um documento por transação, com os mesmos campos conceituais de hoje e `amountCents` no lugar de `amount`.
   - `users/{uid}/settings/main` (com `schemaVersion: 2`), `users/{uid}/profile/main`
   - Coleções novas das próximas fases: `holdings`, `investmentTransactions`, `fixedIncome`, `dividends`, `budgets`, `goals`, `bills`.
   - O app ignora os documentos antigos em `users/{uid}/appData/*`. Se o João quiser apagar esses documentos, ofereça um script separado e só rode depois que ele confirmar.
   - No primeiro login, criar `settings/main` com as categorias e os cartões padrão (os mesmos de `defaultCategories` e `defaultCards` do legacy).
-- [ ] Portar as regras de negócio do `legacy/script.js` para módulos TS testados: expansão de parcelas por fatura, recorrência, totais do mês, categorização automática.
-- [ ] Atualizar as regras de segurança do Firestore (`firestore.rules`) para que cada usuário só leia e escreva em `users/{seu uid}/**`.
+- [x] Portar as regras de negócio do `legacy/script.js` para módulos TS testados: expansão de parcelas por fatura, recorrência, totais do mês, categorização automática.
+- [x] Atualizar as regras de segurança do Firestore (`firestore.rules`) para que cada usuário só leia e escreva em `users/{seu uid}/**`.
+  - **Pendência:** as regras estão em `firestore.rules`, mas só valem depois que o João publicar com `firebase deploy --only firestore:rules`.
 
 ## Fase 2: Identidade visual, logo e temas
 

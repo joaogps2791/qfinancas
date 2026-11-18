@@ -27,8 +27,17 @@ O plano completo, dividido em fases, está em `docs/PLANO.md`. **Trabalhe uma fa
 
 ## Comandos
 
-(preencher na Fase 1, quando o projeto for criado)
-
 - `npm run dev`: abre o app em modo desenvolvimento
-- `npm test`: roda os testes
+- `npm test`: roda os testes (Vitest, arquivos `*.test.ts`)
+- `npm run typecheck` e `npm run lint`: checam tipos e estilo
 - `npm run build:win`: gera o instalador do Windows em `dist/`
+- `firebase deploy --only firestore:rules`: publica o `firestore.rules` (o João roda)
+
+## Onde fica cada coisa
+
+- `src/main/`: processo principal (janela, IPC, `safeStorage`, login com Google pelo navegador)
+- `src/preload/index.ts`: a única ponte com a tela (`window.api`)
+- `src/renderer/src/domain/`: regras de negócio puras e testadas (centavos, datas, parcelas, recorrência, categorização)
+- `src/renderer/src/data/store.ts`: Firebase + estado (Zustand)
+- `src/renderer/src/screens/`: telas
+- `legacy/`: o site antigo, só como referência
