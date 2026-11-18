@@ -34,11 +34,11 @@ Marque os itens com `[x]` conforme forem ficando prontos.
 
 ## Fase 0: Preparação e limpeza
 
-- [ ] Rodar `git init` (se ainda não houver repositório) e fazer um commit do estado atual como "site original".
-- [ ] Mover o site antigo para `legacy/` (index.html, script.js, styles.css, favicons, dev-server.mjs). Ele serve de referência de regra de negócio durante a reescrita.
-- [ ] Apagar `temp.js`, `temp2.js`, `temp3.js`, a pasta `-/` e os `server.*.log`.
-- [ ] Atualizar o `.gitignore` para Electron/Vite (`node_modules`, `out`, `dist`, `.env*`).
-- [ ] Colocar a configuração do Firebase num `.env` (`VITE_FIREBASE_*`) em vez de deixá-la escrita no código. Criar um `.env.example` sem os valores.
+- [x] Rodar `git init` (se ainda não houver repositório) e fazer um commit do estado atual como "site original".
+- [x] Mover o site antigo para `legacy/` (index.html, script.js, styles.css, favicons, dev-server.mjs). Ele serve de referência de regra de negócio durante a reescrita.
+- [x] Apagar `temp.js`, `temp2.js`, `temp3.js`, a pasta `-/` e os `server.*.log`.
+- [x] Atualizar o `.gitignore` para Electron/Vite (`node_modules`, `out`, `dist`, `.env*`).
+- [x] Colocar a configuração do Firebase num `.env` (`VITE_FIREBASE_*`) em vez de deixá-la escrita no código. Criar um `.env.example` sem os valores.
 
 ## Fase 1: Base do app em Electron e estrutura de dados
 
