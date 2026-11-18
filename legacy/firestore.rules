@@ -1,0 +1,10 @@
+// Regras que estavam publicadas no Firebase antes do app novo (copiadas do console em 2026-11-18).
+// Guardadas só como backup: para voltar, cole este conteúdo em Firestore → Regras → Publicar.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/appData/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

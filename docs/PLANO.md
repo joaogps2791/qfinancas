@@ -51,7 +51,7 @@ Marque os itens com `[x]` conforme forem ficando prontos.
 - [x] **Login:**
   - E-mail e senha funcionam normalmente no Electron.
   - Login com Google: o `signInWithPopup` não funciona direito dentro do Electron. Implementar o fluxo abrindo o navegador padrão do sistema (OAuth com redirecionamento para `http://127.0.0.1:<porta>` no processo principal) e entrar no Firebase com `signInWithCredential`. Se isso travar a fase, entregar primeiro só e-mail/senha e deixar o Google como pendência anotada aqui.
-  - **Pendência:** o código do Google está pronto (`src/main/googleAuth.ts`), mas só funciona depois que o João criar um cliente OAuth do tipo "App para computador" no Google Cloud do projeto `qfinancas-fc5bc` e colocar `MAIN_VITE_GOOGLE_CLIENT_ID` e `MAIN_VITE_GOOGLE_CLIENT_SECRET` no `.env`. Ainda não foi testado de ponta a ponta.
+  - Cliente OAuth "QFinanças Desktop" (App para computador) criado no Google Cloud em 18/11/2026; ID e secret estão no `.env` (fora do git). Falta o João testar o login de ponta a ponta.
 - [x] **Estrutura de dados nova, começando do zero.** O João decidiu que **não precisa migrar nem guardar os dados antigos**. Não escreva código de migração nem de backup do formato antigo.
   - `users/{uid}/transactions/{id}`: um documento por transação, com os mesmos campos conceituais de hoje e `amountCents` no lugar de `amount`.
   - `users/{uid}/settings/main` (com `schemaVersion: 2`), `users/{uid}/profile/main`
@@ -60,7 +60,7 @@ Marque os itens com `[x]` conforme forem ficando prontos.
   - No primeiro login, criar `settings/main` com as categorias e os cartões padrão (os mesmos de `defaultCategories` e `defaultCards` do legacy).
 - [x] Portar as regras de negócio do `legacy/script.js` para módulos TS testados: expansão de parcelas por fatura, recorrência, totais do mês, categorização automática.
 - [x] Atualizar as regras de segurança do Firestore (`firestore.rules`) para que cada usuário só leia e escreva em `users/{seu uid}/**`.
-  - **Pendência:** as regras estão em `firestore.rules`, mas só valem depois que o João publicar com `firebase deploy --only firestore:rules`.
+  - Publicadas no console em 18/11/2026. As regras anteriores estão em `legacy/firestore.rules`.
 
 ## Fase 2: Identidade visual, logo e temas
 
