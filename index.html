@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QFinanças</title>
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css?v=6" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <div class="mobile-topbar">
+        <button id="menuToggle" class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <button id="brandHomeMobile" class="site-brand-mobile" type="button" aria-label="Ir para o Dashboard">QFinanças</button>
+      </div>
+      <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+      <aside class="app-sidebar" id="appSidebar">
+        <div class="sidebar-top">
+          <button id="brandHome" class="site-brand" type="button" aria-label="Ir para o Dashboard">QFinanças</button>
+        </div>
+        <nav id="mainMenu" class="nav-list" aria-label="Seções">
+          <button class="active" type="button" data-view-target="dashboard">Dashboard</button>
+          <button type="button" data-view-target="transactions">Transações</button>
+          <button type="button" data-view-target="cards">Cartões</button>
+          <button type="button" data-view-target="settings">Configurações</button>
+        </nav>
+        <div class="sidebar-bottom">
+          <button id="authToggle" class="auth-toggle" type="button" aria-label="Abrir perfil" aria-expanded="false">
+            <img id="authAvatar" class="auth-avatar" alt="Perfil" />
+            <span id="authToggleText">Entrar</span>
+          </button>
+          <div id="profileMenu" class="profile-menu" aria-label="Menu de perfil">
+            <div class="profile-menu-head">
+              <img id="profileMenuAvatar" class="profile-menu-avatar" alt="Perfil" />
+              <div class="profile-menu-user">
+                <strong id="profileMenuName">Usuário</strong>
+                <span id="profileMenuEmail">email@exemplo.com</span>
+              </div>
+              <button id="profileEditToggle" class="profile-edit-toggle" type="button" aria-label="Editar perfil" aria-expanded="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+              </button>
+            </div>
+            <form id="profileEditForm" class="profile-edit-form is-collapsed">
+              <label>
+                Nome
+                <input id="profileDisplayName" type="text" autocomplete="name" placeholder="Como voce quer aparecer" />
+              </label>
+              <label class="profile-photo-upload">
+                Foto
+                <input id="profilePhotoFile" type="file" accept="image/*" />
+                <span>Escolher foto da galeria</span>
+              </label>
+              <p id="profileEditStatus" class="profile-edit-status"></p>
+              <button type="submit" class="profile-save">Salvar perfil</button>
+            </form>
+            <label class="theme-switch profile-theme-switch">
+              <input id="themeToggle" type="checkbox" />
+              <span class="theme-switch-label">Modo escuro</span>
+              <span class="theme-switch-track" aria-hidden="true">
+                <span class="theme-switch-thumb"></span>
+              </span>
+            </label>
+            <button id="profileLogout" type="button" class="profile-logout">Sair</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="app-main">
+
+      <section class="workspace">
+        <section id="guestHome" class="guest-home">
+          <article class="guest-hero panel">
+            <p class="guest-kicker">Chega de planilha</p>
+            <h1>Sua grana, <span class="hero-highlight">organizada</span><br />sem susto no fim do mês</h1>
+            <p class="guest-copy">Entradas, saídas à vista, cartões e recorrências, tudo num lugar só — com visão clara de onde seu dinheiro está indo.</p>
+
+            <div class="hero-preview panel-mini" aria-hidden="true">
+              <div class="hero-preview-head">
+                <span>Últimas transações</span>
+              </div>
+              <div class="hero-preview-item">
+                <span class="hero-preview-dot expense"></span>
+                <div class="hero-preview-text">
+                  <strong>iFood</strong>
+                  <small>Alimentação · hoje</small>
+                </div>
+                <span class="hero-preview-value expense">R$ 42,00</span>
+              </div>
+              <div class="hero-preview-item">
+                <span class="hero-preview-dot income"></span>
+                <div class="hero-preview-text">
+                  <strong>Salário</strong>
+                  <small>Entrada · dia 05</small>
+                </div>
+                <span class="hero-preview-value income">R$ 3.200,00</span>
+              </div>
+              <div class="hero-preview-item">
+                <span class="hero-preview-dot balance"></span>
+                <div class="hero-preview-text">
+                  <strong>Cartão Inter</strong>
+                  <small>Fatura · 3/6 parcelas</small>
+                </div>
+                <span class="hero-preview-value">R$ 120,00</span>
+              </div>
+            </div>
+
+            <div class="guest-chips">
+              <span>Controle mensal</span>
+              <span>Cartões separados</span>
+              <span>Relatórios por categoria</span>
+            </div>
+            <div class="guest-feature-grid">
+              <article>
+                <strong>Visão completa</strong>
+                <p>Acompanhe saldo, entradas e saídas em tempo real.</p>
+              </article>
+              <article>
+                <strong>Fluxo inteligente</strong>
+                <p>Parcelas e recorrências distribuídas automaticamente.</p>
+              </article>
+              <article>
+                <strong>Dados privados</strong>
+                <p>Cada usuário acessa apenas as próprias informações.</p>
+              </article>
+            </div>
+          </article>
+
+          <article class="guest-auth panel">
+            <h2>Acesse sua conta</h2>
+            <p id="guestAuthStatusText" class="auth-status">Use seu e-mail e senha para entrar no seu espaço.</p>
+            <label>
+              E-mail
+              <input id="guestAuthEmail" type="email" autocomplete="email" required />
+            </label>
+            <label>
+              Senha
+              <input id="guestAuthPassword" type="password" autocomplete="current-password" required />
+            </label>
+            <div class="auth-actions">
+              <button id="guestAuthLogin" type="button">Entrar</button>
+              <button id="guestAuthSignup" type="button">Criar conta</button>
+            </div>
+            <button id="guestAuthGoogle" type="button" class="auth-google">Entrar com Google</button>
+          </article>
+        </section>
+
+        <section id="appContent">
+        <header class="topbar">
+
+          <div class="period-control" aria-label="Período selecionado">
+            <button id="previousMonth" type="button" aria-label="Mês anterior">&lsaquo;</button>
+            <span id="currentPeriod">Maio 2026</span>
+            <button id="nextMonth" type="button" aria-label="Próximo mês">&rsaquo;</button>
+          </div>
+        </header>
+
+        <section id="dashboardView" class="app-view active-view" aria-label="Dashboard financeiro">
+          <section class="integrated-summary-panel panel" aria-label="Resumo financeiro integrado">
+            <div class="summary-income">
+              <span>Entradas</span>
+              <strong id="totalIncome" class="income-value">R$ 0,00</strong>
+            </div>
+
+            <div class="summary-chart-layout">
+              <div id="categoryDonut" class="donut-chart" role="img" aria-label="Gr&aacute;fico de despesas"></div>
+              <div id="categoryLegend" class="legend"></div>
+            </div>
+
+            <div class="summary-balance">
+              <span>Saldo do m&ecirc;s</span>
+              <strong id="monthBalance">R$ 0,00</strong>
+              <small id="balanceStatus">Atualizando sa&uacute;de financeira</small>
+            </div>
+            
+            <div style="display:none;">
+              <span id="totalExpense"></span>
+              <span id="categoryTotal"></span>
+            </div>
+          </section>
+
+          <section class="content-grid">
+            <article class="panel">
+              <div class="panel-header">
+                <div class="panel-header-title">
+                  <span class="panel-icon balance" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></svg>
+                  </span>
+                  <div>
+                    <p class="eyebrow">Cartões</p>
+                  </div>
+                </div>
+                <span id="cardTotal" class="panel-total">R$ 0,00</span>
+              </div>
+              <div id="cardBars" class="bar-list" aria-label="Gastos por cartão de crédito"></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-header">
+                <div class="panel-header-title">
+                  <span class="panel-icon expense" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
+                  </span>
+                  <div>
+                    <p class="eyebrow">À vista</p>
+                  </div>
+                </div>
+                <span id="cashTotal" class="panel-total">R$ 0,00</span>
+              </div>
+              <div id="cashBars" class="bar-list" aria-label="Saídas à vista por forma de pagamento"></div>
+            </article>
+
+            <article class="panel wide-panel" id="dashboardLedgerPanel">
+              <div class="panel-header">
+                <div class="panel-header-title">
+                  <div>
+                    <p class="eyebrow">Extrato</p>
+                    <h2>Lançamentos do mês</h2>
+                  </div>
+                </div>
+                <span id="ledgerTotal" class="panel-total">R$ 0,00</span>
+              </div>
+              <div id="dashboardLedgerPills" class="pill-tabs" role="tablist" aria-label="Filtrar lançamentos">
+                <button type="button" class="pill-tab active" data-ledger-pill="all">Todas</button>
+                <button type="button" class="pill-tab" data-ledger-pill="income">Entradas</button>
+                <button type="button" class="pill-tab" data-ledger-pill="cash">À vista</button>
+                <button type="button" class="pill-tab" data-ledger-pill="card">Cartões</button>
+              </div>
+              <div id="dashboardLedgerContent" class="statement-scroll" aria-live="polite"></div>
+            </article>
+          </section>
+        </section>
+
+        <section id="transactionsView" class="app-view" aria-label="Gerenciamento de transações">
+          <section class="content-grid transaction-workspace transactions-grid">
+            <article class="panel">
+              <div class="panel-header">
+                <div class="panel-header-title">
+                  <span class="panel-icon income" aria-hidden="true" id="unifiedFormIcon">
+                    <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+                  </span>
+                  <div>
+                    <p class="eyebrow">Nova transação</p>
+                    <h2 id="unifiedFormTitle">Registrar entrada</h2>
+                  </div>
+                </div>
+              </div>
+              <form id="unifiedTransactionForm" class="entry-form">
+                <div class="form-row single-field">
+                  <label>
+                    Tipo de lançamento
+                    <select id="transactionKind" name="kind">
+                      <option value="income">Entrada (Receita)</option>
+                      <option value="cash">Saída à vista (Despesa)</option>
+                      <option value="card">Saída no cartão de crédito (Despesa)</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="form-row">
+                  <label id="dateLabel">
+                    Data
+                    <input name="date" type="date" required />
+                  </label>
+                  
+                  <label class="only-income">
+                    Tipo de entrada
+                    <select name="incomeType" required>
+                      <option>Salário</option>
+                      <option>Freelance</option>
+                      <option>Investimentos</option>
+                      <option>Reembolso</option>
+                      <option>Outros</option>
+                    </select>
+                  </label>
+                  
+                  <label class="only-cash" style="display: none;">
+                    Forma de pagamento
+                    <select name="paymentMethod">
+                      <option>Pix</option>
+                      <option>Débito</option>
+                      <option>Dinheiro</option>
+                      <option>Transferência</option>
+                      <option>Boleto</option>
+                    </select>
+                  </label>
+                  
+                  <label class="only-card" style="display: none;">
+                    Cartão utilizado
+                    <select name="card" data-card-select></select>
+                  </label>
+                </div>
+                
+                <div class="form-row only-card" style="display: none;">
+                  <label>
+                    Data da fatura
+                    <input name="invoiceDate" type="date" />
+                  </label>
+                  <label>
+                    Parcelas
+                    <input name="installments" type="text" inputmode="numeric" value="1" />
+                  </label>
+                </div>
+
+                <label>
+                  Descrição
+                  <input name="description" type="text" placeholder="Ex.: Salário, mercado, aluguel..." required />
+                </label>
+
+                <div class="form-row">
+                  <label class="only-expense" style="display: none;">
+                    Categoria automatica
+                    <select name="category" data-category-select></select>
+                  </label>
+                  <label>
+                    Valor
+                    <input name="amount" type="text" inputmode="decimal" placeholder="0,00" required />
+                  </label>
+                </div>
+
+                <label class="checkbox-field only-expense" style="display: none;">
+                  <input name="isRecurring" type="checkbox" />
+                  <span id="recurringLabel">Pagamento recorrente mensal</span>
+                </label>
+
+                <div class="form-row single-field recurring-options only-expense" style="display: none;">
+                  <label>
+                    Quantidade de meses
+                    <input name="recurrenceCount" type="text" inputmode="numeric" value="1" disabled />
+                  </label>
+                </div>
+
+                <div class="form-row single-field only-card" style="display: none;">
+                  <label>
+                    Observações
+                    <input name="notes" type="text" placeholder="Ex.: compra recorrente, fatura fechada" />
+                  </label>
+                </div>
+
+                <button type="submit" id="unifiedSubmitBtn">Registrar entrada</button>
+              </form>
+            </article>
+
+          </section>
+        </section>
+
+        <section id="cardsView" class="app-view" aria-label="Extratos por cartão">
+          <section class="cards-summary-grid" aria-label="Resumo dos cartões">
+            <article class="metric-card expense">
+              <span>Fatura do cartão</span>
+              <strong id="selectedCardTotal">R$ 0,00</strong>
+              <small id="selectedCardName">Cartão selecionado</small>
+            </article>
+            <article class="metric-card balance">
+              <span>Lançamentos no mês</span>
+              <strong id="selectedCardCount">0</strong>
+              <small>Itens lançados na fatura selecionada</small>
+            </article>
+          </section>
+
+          <article class="panel">
+            <div class="panel-header">
+              <div class="panel-header-title">
+                <span class="panel-icon balance" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></svg>
+                </span>
+                <div>
+                  <p class="eyebrow">Extrato por cartão</p>
+                  <h2>Fatura do mês selecionado</h2>
+                </div>
+              </div>
+              <span id="cardStatementTotal" class="panel-total">R$ 0,00</span>
+            </div>
+            <div id="cardTabs" class="card-tabs" aria-label="Selecionar cartão"></div>
+            <div id="cardStatement" class="table-list card-statement-list" aria-live="polite"></div>
+          </article>
+        </section>
+
+        <section id="settingsView" class="app-view" aria-label="Configurações">
+          <section class="content-grid transaction-workspace">
+            <article class="panel settings-panel settings-create-panel is-collapsed">
+              <div class="panel-header">
+                <div class="panel-header-title">
+                  <span class="panel-icon chart" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 19V9M12 19V5M20 19v-6" /></svg>
+                  </span>
+                  <div>
+                    <p class="eyebrow">Categorias</p>
+                    <h2>Gerenciar categorias</h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="settings-create-toggle"
+                  data-collapse-target="categorySettingsForm"
+                  aria-expanded="false"
+                >
+                  Criar nova categoria
+                  <span class="panel-collapse-icon" aria-hidden="true"></span>
+                </button>
+              </div>
+              <form id="categorySettingsForm" class="entry-form settings-form">
+                <label>
+                  Nova categoria
+                  <input name="categoryName" type="text" placeholder="Ex.: Pets, Impostos, Viagens" required />
+                </label>
+                <label class="color-picker-field">
+                  <span>Cor</span>
+                  <span class="color-picker-control">
+                    <input name="categoryColor" type="color" value="#4c1d95" />
+                    <span class="color-picker-preview" aria-hidden="true"></span>
+                    <span class="color-picker-text">#4c1d95</span>
+                  </span>
+                </label>
+                <div class="icon-picker-field">
+                  <span>Ícone</span>
+                  <input type="hidden" name="categoryIcon" value="outros" />
+                  <div id="categoryIconPicker"></div>
+                </div>
+                <button type="submit">Adicionar categoria</button>
+              </form>
+              <div id="categorySettingsList" class="settings-list" aria-live="polite"></div>
+            </article>
+
+            <article class="panel settings-panel settings-create-panel is-collapsed">
+              <div class="panel-header">
+                <div class="panel-header-title">
+                  <span class="panel-icon balance" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></svg>
+                  </span>
+                  <div>
+                    <p class="eyebrow">Cartões</p>
+                    <h2>Gerenciar cartões</h2>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="settings-create-toggle"
+                  data-collapse-target="cardSettingsForm"
+                  aria-expanded="false"
+                >
+                  Criar novo cartão
+                  <span class="panel-collapse-icon" aria-hidden="true"></span>
+                </button>
+              </div>
+              <form id="cardSettingsForm" class="entry-form settings-form">
+                <label>
+                  Novo cartão
+                  <input name="cardName" type="text" placeholder="Ex.: XP Visa, Inter, C6" required />
+                </label>
+                <label class="color-picker-field">
+                  <span>Cor</span>
+                  <span class="color-picker-control">
+                    <input name="cardColor" type="color" value="#4c1d95" />
+                    <span class="color-picker-preview" aria-hidden="true"></span>
+                    <span class="color-picker-text">#4c1d95</span>
+                  </span>
+                </label>
+                <button type="submit">Adicionar cartão</button>
+              </form>
+              <div id="cardSettingsList" class="settings-list" aria-live="polite"></div>
+            </article>
+
+          </section>
+        </section>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="authDialog" class="auth-dialog">
+      <form class="auth-dialog-form">
+        <div class="auth-dialog-header">
+          <h2>Perfil</h2>
+          <button id="authClose" class="auth-close" type="button" aria-label="Fechar">&times;</button>
+        </div>
+        <p id="authStatusText" class="auth-status">Entre com seu e-mail para acessar seus dados.</p>
+        <label>
+          E-mail
+          <input id="authEmail" type="email" autocomplete="email" required />
+        </label>
+        <label>
+          Senha
+          <input id="authPassword" type="password" autocomplete="current-password" required />
+        </label>
+        <div class="auth-actions">
+          <button id="authLogin" type="button">Entrar</button>
+          <button id="authSignup" type="button">Criar conta</button>
+        </div>
+        <button id="authGoogle" type="button" class="auth-google">Entrar com Google</button>
+      </form>
+    </dialog>
+
+    <dialog id="signupDialog" class="auth-dialog signup-dialog">
+      <form id="signupForm" class="auth-dialog-form">
+        <div class="auth-dialog-header">
+          <h2>Criar conta</h2>
+          <button id="signupClose" class="auth-close" type="button" aria-label="Fechar">&times;</button>
+        </div>
+        <p id="signupStatusText" class="auth-status">Preencha seus dados para criar seu espaço no QFinanças.</p>
+        <label>
+          Nome
+          <input id="signupName" type="text" autocomplete="name" placeholder="Seu nome" required />
+        </label>
+        <label>
+          E-mail
+          <input id="signupEmail" type="email" autocomplete="email" required />
+        </label>
+        <label>
+          Senha
+          <input id="signupPassword" type="password" autocomplete="new-password" required />
+        </label>
+        <div class="auth-actions single-action">
+          <button type="submit">Criar minha conta</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="editTransactionDialog" class="auth-dialog edit-transaction-dialog">
+      <form id="editTransactionForm" class="auth-dialog-form">
+        <div class="auth-dialog-header">
+          <h2>Editar transação</h2>
+          <button id="editTransactionClose" class="auth-close" type="button" aria-label="Fechar">&times;</button>
+        </div>
+        <p class="auth-status">Atualize os dados e confirme para salvar.</p>
+        <label>
+          Descrição
+          <input id="editDescription" name="description" type="text" required />
+        </label>
+        <div class="entry-grid two-columns">
+          <label>
+            Data
+            <input id="editDate" name="date" type="date" required />
+          </label>
+          <label id="editCategoryLabel">
+            Categoria
+            <select id="editCategory" name="category" required></select>
+          </label>
+        </div>
+        <label>
+          Valor
+          <input id="editAmount" name="amount" type="text" inputmode="decimal" placeholder="0,00" required />
+        </label>
+
+        <div id="editIncomeFields" class="edit-kind-fields">
+          <label>
+            Tipo da entrada
+            <input id="editIncomeType" name="incomeType" type="text" />
+          </label>
+        </div>
+
+        <div id="editCashFields" class="edit-kind-fields">
+          <label>
+            Forma de pagamento
+            <select id="editPaymentMethod" name="paymentMethod">
+              <option>Pix</option>
+              <option>Débito</option>
+              <option>Dinheiro</option>
+              <option>Transferência</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="editCardFields" class="edit-kind-fields">
+          <div class="entry-grid two-columns">
+            <label>
+              Data da fatura
+              <input id="editInvoiceDate" name="invoiceDate" type="date" />
+            </label>
+            <label>
+              Cartão
+              <select id="editCard" name="card"></select>
+            </label>
+          </div>
+          <div class="entry-grid two-columns">
+            <label>
+              Parcelas
+              <input id="editInstallments" name="installments" type="number" min="1" step="1" />
+            </label>
+            <label>
+              Observações
+              <input id="editNotes" name="notes" type="text" />
+            </label>
+          </div>
+        </div>
+
+        <div class="auth-actions">
+          <button type="submit">Salvar</button>
+          <button id="editTransactionCancel" type="button">Cancelar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="deleteTransactionDialog" class="auth-dialog">
+      <form class="auth-dialog-form">
+        <div class="auth-dialog-header">
+          <h2>Excluir transação</h2>
+          <button id="deleteTransactionClose" class="auth-close" type="button" aria-label="Fechar">&times;</button>
+        </div>
+        <p class="auth-status">Tem certeza que deseja excluir esta transação? Essa ação não pode ser desfeita.</p>
+        <div class="auth-actions">
+          <button id="deleteTransactionConfirm" type="button" class="profile-logout">Excluir</button>
+          <button id="deleteTransactionCancel" type="button">Cancelar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="script.js?v=5"></script>
+  </body>
+</html>
+
+
