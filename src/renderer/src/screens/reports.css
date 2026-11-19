@@ -1,0 +1,150 @@
+/* Relatórios e o layout de impressão do PDF. Só tokens de styles/tokens.css. */
+
+.stat-row--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.year-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+}
+.year-picker strong {
+  min-width: 64px;
+  text-align: center;
+  font-size: var(--text-sm);
+}
+
+.report-legend {
+  display: flex;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+.report-legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.report-dot--income,
+.report-bar--income .recharts-rectangle {
+  background: var(--chart-1);
+  fill: var(--chart-1);
+}
+.report-dot--expense,
+.report-bar--expense .recharts-rectangle {
+  background: var(--chart-2);
+  fill: var(--chart-2);
+}
+.report-area .recharts-area-area {
+  fill: var(--chart-1);
+  fill-opacity: 0.18;
+}
+.report-area .recharts-area-curve {
+  stroke: var(--chart-1);
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+.report-grid h2 {
+  margin-bottom: var(--space-3);
+}
+.report-side {
+  display: grid;
+  gap: var(--space-4);
+}
+.report-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.report .data-table td.positive {
+  color: var(--success);
+}
+.report .data-table td.negative {
+  color: var(--danger);
+}
+.report .data-table td.muted {
+  color: var(--text-muted);
+}
+
+.report-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.report-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--border);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+.report-list li:first-child {
+  border-top: 0;
+}
+
+.print-only {
+  display: none;
+}
+
+@media (max-width: 1240px) {
+  .report-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Layout de impressão (PDF) ----------
+   O app aplica .is-printing antes do printToPDF, para os gráficos se redesenharem na
+   largura da folha A4 (~720px úteis) antes da captura. */
+.is-printing,
+.is-printing body {
+  background: var(--surface);
+}
+.is-printing .titlebar,
+.is-printing .sidebar,
+.is-printing .no-print,
+.is-printing .banner {
+  display: none !important;
+}
+.is-printing .print-only {
+  display: inline;
+}
+.is-printing .shell {
+  display: block;
+  height: auto;
+}
+.is-printing .shell__main {
+  overflow: visible;
+}
+.is-printing .page {
+  width: 720px;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  gap: var(--space-4);
+}
+.is-printing .ui-card {
+  box-shadow: none;
+  border: 1px solid var(--border);
+  break-inside: avoid;
+}
+.is-printing .stat-row--3,
+.is-printing .report-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.is-printing .report-grid {
+  grid-template-columns: minmax(0, 1fr);
+}

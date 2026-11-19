@@ -33,6 +33,9 @@ const api = {
       filters?: FileFilter[]
     ): Promise<string | null> => ipcRenderer.invoke('file:save', defaultName, content, filters)
   },
+  /** Salva a janela como PDF (a tela deve estar no layout de impressão). */
+  savePdf: (defaultName: string): Promise<string | null> =>
+    ipcRenderer.invoke('report:pdf', defaultName),
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke('open-external', url),
   auth: {
     googleSignIn: (): Promise<string> => ipcRenderer.invoke('auth:google')

@@ -225,6 +225,35 @@ function registerIpc(): void {
     }
   )
 
+  // Relatório em PDF: a tela já está no layout de impressão quando chama.
+  ipcMain.handle('report:pdf', async (event, defaultName: unknown) => {
+    if (!mainWindow || event.sender !== mainWindow.webContents) return null
+    const name =
+      typeof defaultName === 'string' && /^[^\\/:*?"<>|]{1,120}\.pdf$/i.test(defaultName)
+        ? defaultName
+        : 'relatorio-qfinancas.pdf'
+    const result = await dialog.showSaveDialog(mainWindow, {
+      defaultPath: name,
+      filters: [{ name: 'PDF', extensions: ['pdf'] }]
+    })
+    if (result.canceled || !result.filePath) return null
+    // As margens da folha saem com a cor de fundo da janela (escura no tema escuro).
+    const previous = mainWindow.getBackgroundColor()
+    mainWindow.setBackgroundColor('#ffffff')
+    let pdf: Buffer
+    try {
+      pdf = await event.sender.printToPDF({
+        printBackground: true,
+        pageSize: 'A4',
+        margins: { top: 0.5, bottom: 0.5, left: 0.5, right: 0.5 }
+      })
+    } finally {
+      mainWindow.setBackgroundColor(previous)
+    }
+    await writeFile(result.filePath, pdf)
+    return result.filePath
+  })
+
   ipcMain.handle('open-external', (_e, url: string) => openExternalSafe(String(url)))
 
   ipcMain.handle('auth:google', () => googleSignIn(openExternalSafe))

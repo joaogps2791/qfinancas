@@ -31,6 +31,7 @@ import {
 } from '../domain/finance'
 import type { Dividend, FixedIncome, InvestmentTransaction } from '../domain/investments'
 import type { BudgetLimits, Goal } from '../domain/planning'
+import { BACKUP_COLLECTIONS, type Backup, type BackupCollection } from '../domain/backup'
 
 export type Profile = { displayName: string; photoURL: string; photoDataUrl?: string }
 
@@ -300,6 +301,48 @@ export async function saveGoal(goal: WithoutId<Goal>, id?: string): Promise<void
 
 export async function deleteGoal(id: string): Promise<void> {
   await deleteDoc(doc(db, ...userPath(requireUid(), 'goals', id)))
+}
+
+// ---------- Backup ----------
+
+/** O que está no app agora, no formato que `makeBackup` espera. */
+export function currentBackupData(): {
+  settings: Settings | null
+  profile: Profile | null
+  collections: Record<BackupCollection, { id: string }[]>
+} {
+  const s = useApp.getState()
+  return {
+    settings: s.settings,
+    profile: s.profile,
+    collections: {
+      transactions: s.transactions,
+      ...s.investments,
+      budgets: Object.entries(s.budgets).map(([id, limits]) => ({ id, limits })),
+      goals: s.goals
+    }
+  }
+}
+
+/**
+ * Grava o backup por cima: cada item com o mesmo id é substituído, o que não está no backup
+ * continua como está. Quem chama salva antes um backup do estado atual.
+ */
+export async function restoreBackup(backup: Backup): Promise<void> {
+  const uid = requireUid()
+  const writes: [string[], object][] = []
+  if (backup.settings) writes.push([['settings', 'main'], backup.settings])
+  if (backup.profile) writes.push([['profile', 'main'], backup.profile])
+  for (const name of BACKUP_COLLECTIONS) {
+    for (const { id, ...data } of backup.collections[name]) writes.push([[name, id], data])
+  }
+  for (let start = 0; start < writes.length; start += 450) {
+    const batch = writeBatch(db)
+    for (const [path, data] of writes.slice(start, start + 450)) {
+      batch.set(doc(db, ...userPath(uid, ...path)), data)
+    }
+    await batch.commit()
+  }
 }
 
 // ---------- Configurações e perfil ----------

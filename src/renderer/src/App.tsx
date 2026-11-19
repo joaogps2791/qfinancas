@@ -9,9 +9,9 @@ import Transactions from './screens/Transactions'
 import Cards from './screens/Cards'
 import Settings from './screens/Settings'
 import Investments from './screens/Investments'
-import Soon from './screens/Soon'
 import Goals from './screens/Goals'
 import Import from './screens/Import'
+import Reports from './screens/Reports'
 import DevUi from './screens/DevUi'
 
 /** Ctrl+Shift+U abre a página escondida do design system. */
@@ -63,7 +63,7 @@ export default function App(): React.JSX.Element {
               <Route path="investimentos" element={<Investments />} />
               <Route path="metas" element={<Goals />} />
               <Route path="importar" element={<Import />} />
-              <Route path="relatorios" element={<Soon title="Relatórios" phase="Fase 7" />} />
+              <Route path="relatorios" element={<Reports />} />
               <Route path="configuracoes" element={<Settings />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

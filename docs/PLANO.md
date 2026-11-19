@@ -19,16 +19,17 @@ Marque os itens com `[x]` conforme forem ficando prontos.
 
 ## Decisões já tomadas com o João
 
-| Ponto | Decisão |
-|---|---|
-| Plataforma | Electron, só Windows por enquanto |
-| Dados | Continuam no Firebase (Auth + Firestore). Os dados antigos **não** precisam ser migrados nem salvos: o app novo começa do zero |
-| Site | Não precisa continuar no ar. Desativar o Hosting no fim (Auth e Firestore continuam) |
-| Nome | Continua **QFinanças**, com **logo novo** |
-| Tema | Abre seguindo o tema do Windows. Em Configurações dá para escolher Sistema / Claro / Escuro |
-| Investimentos | Carteira e aportes, cotações automáticas, Tesouro e renda fixa, proventos de FIIs |
-| Extras | Metas e orçamento, importar extrato, relatórios e exportação, avisos de vencimento (com opção de ligar e desligar) |
-| Open Finance | Opcional, na última fase, via Meu Pluggy (ver Fase 10) |
+| Ponto         | Decisão                                                                                                                        |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Plataforma    | Electron, só Windows por enquanto                                                                                              |
+| Dados         | Continuam no Firebase (Auth + Firestore). Os dados antigos **não** precisam ser migrados nem salvos: o app novo começa do zero |
+| Site          | Não precisa continuar no ar. Desativar o Hosting no fim (Auth e Firestore continuam)                                           |
+| Nome          | Continua **QFinanças**, com **logo novo**                                                                                      |
+| Tema          | Abre seguindo o tema do Windows. Em Configurações dá para escolher Sistema / Claro / Escuro                                    |
+| Investimentos | Carteira e aportes, cotações automáticas, Tesouro e renda fixa, proventos de FIIs                                              |
+| Extras        | Metas e orçamento, importar extrato, relatórios e exportação, avisos de vencimento (com opção de ligar e desligar)             |
+| Atualizações  | Automáticas, pelos Releases de um repositório público no GitHub (ver Fase 9B)                                                  |
+| Open Finance  | Opcional, na última fase, via Meu Pluggy (ver Fase 10)                                                                         |
 
 ---
 
@@ -155,21 +156,20 @@ Notas da Fase 5:
 - [x] Escolher se o arquivo é de conta (vira entrada/à vista) ou de cartão (vira lançamento de cartão numa fatura).
 - [x] Testes com arquivos OFX/CSV de exemplo (dados falsos) em `tests/fixtures/`.
 
-Notas da Fase 6:
-- **Onde fica:** a tela é `#/importar`, aberta pelo botão "Importar extrato" em Transações. A leitura dos arquivos está em `domain/importer.ts`, que é puro e testado. Os arquivos de exemplo estão em `tests/fixtures/`: OFX 1.x em Windows-1252, OFX 2.x de cartão e quatro CSV (Nubank conta, Nubank cartão, Itaú e débito/crédito em colunas separadas).
-- **CSV:** o separador (`;`, `,` ou tab) e o formato do número (`1.234,56` ou `1234.56`) são detectados sozinhos. As colunas são sugeridas pelo cabeçalho e dá para ajustar. Os perfis ficam em `settings/main.importProfiles`, guardando as colunas pela posição. O app não vem com perfis prontos: na primeira vez com cada banco, você confere e salva.
-- **Datas:** o app entende dia/mês/ano e ano-mês-dia. Arquivo em mês/dia (padrão americano) sai com a data errada.
-- **Duplicados:** mesmo valor, data com até 1 dia de diferença e descrição parecida (uma contém a outra, ou metade das palavras em comum, sem acento). No cartão também vale o valor de uma parcela de compra parcelada. A linha repetida fica desmarcada, e você pode marcar se quiser importar mesmo assim.
-- **Cartão:** cada compra entra em 1x na fatura escolhida, sugerida pela compra mais recente e pelo fechamento do cartão. Valores positivos (pagamento da fatura e estorno) ficam de fora.
-- **Conta:** crédito vira entrada, com o tipo sugerido pela descrição (Salário, Reembolso, Investimentos ou Outros). Débito vira saída à vista, com a forma de pagamento escolhida para o arquivo todo.
-- Sem regra que bata, a categoria sugerida na importação é "Outros", se ela existir.
-- Os lançamentos são gravados em lotes de 450, porque o limite do Firestore é 500 por lote.
-
 ## Fase 7: Relatórios e exportação
 
-- [ ] Tela "Relatórios": resumo mensal e anual (entradas, saídas, saldo, por categoria, por cartão), comparativo mês a mês e evolução do patrimônio investido.
-- [ ] Exportar para **PDF** (usar `webContents.printToPDF` com uma página de relatório formatada para impressão) e para **Excel** (`.xlsx` com a biblioteca `exceljs`: abas de Transações, Resumo e Investimentos).
-- [ ] Exportar backup completo em JSON e importar de volta (útil também como segurança dos dados).
+- [x] Tela "Relatórios": resumo mensal e anual (entradas, saídas, saldo, por categoria, por cartão), comparativo mês a mês e evolução do patrimônio investido.
+- [x] Exportar para **PDF** (usar `webContents.printToPDF` com uma página de relatório formatada para impressão) e para **Excel** (`.xlsx` com a biblioteca `exceljs`: abas de Transações, Resumo e Investimentos).
+- [x] Exportar backup completo em JSON e importar de volta (útil também como segurança dos dados).
+
+Notas da Fase 7:
+- **Tela de Relatórios:** mostra um mês ou um ano. Os totais comparam com o mês ou o ano anterior, e o gráfico "Mês a mês" cobre os 12 meses até o mês escolhido, ou os 12 meses do ano. O cartão conta pela fatura, como no resto do app.
+- **Patrimônio investido:** é calculado pelo custo do que estava aplicado no fim de cada mês, sem cotação histórica, porque o plano grátis da brapi não traz histórico. Renda fixa vencida continua contando até haver um resgate.
+- **PDF:** a tela passa para um layout de impressão (claro, sem barra lateral, 720px de largura) e espera os gráficos se redesenharem. Aí o processo principal gera a folha A4 com `printToPDF`. Enquanto imprime, a janela fica com fundo branco, senão as margens sairiam escuras no tema escuro.
+- **Excel:** tem as abas Resumo, Transações e Investimentos, com valores como número em reais formatados em R$ e datas de verdade. O `exceljs` só é carregado quando você exporta.
+- **Backup:** fica em Configurações → Backup e gera um JSON com configurações, perfil e todas as coleções, sem os carimbos de data do Firestore. As chaves de integração ficam de fora, porque estão no PC e não na nuvem.
+- **Restaurar:** o arquivo é validado antes de tudo: formato, versão, identificadores e o mínimo de cada lançamento. Antes de gravar, o app obriga a salvar um backup do estado atual (se você cancelar, nada é gravado). Os itens com o mesmo identificador são substituídos, e o que não está no backup continua.
+- A tela provisória "Em breve" (`Soon.tsx`) foi removida, porque todas as rotas já têm tela.
 
 ## Fase 8: Avisos de vencimento
 
@@ -184,9 +184,41 @@ Notas da Fase 6:
 
 - [ ] `electron-builder` gerando o instalador NSIS (`QFinanças Setup x.y.z.exe`) com o logo novo, atalho na área de trabalho e no menu Iniciar.
 - [ ] Nome do produto "QFinanças" e `appId` `com.joao.qfinancas` (ou o que o João preferir).
-- [ ] Atualização automática fica de fora por enquanto (exigiria publicar as versões em algum lugar). Anotar como ideia futura.
+- [ ] Deixar o `electron-builder` já preparado para a atualização automática (ver Fase 9B): `publish` apontando para o GitHub e geração do `latest.yml` junto com o instalador.
 - [ ] **Desligar o site:** o João roda `firebase hosting:disable` (explicar o comando para ele, não rodar sozinho). Auth e Firestore continuam funcionando. Remover `firebase.json` → seção `hosting`.
 - [ ] Atualizar este CLAUDE.md com os comandos finais.
+
+## Fase 9B: Atualização automática
+
+**Objetivo:** depois de instalado, o app se atualiza sozinho. O João não precisa baixar nem rodar instalador de novo.
+
+Como vai funcionar: as versões novas ficam publicadas nos **Releases de um repositório público no GitHub**. O app verifica se tem versão nova, baixa em segundo plano e pergunta se pode reiniciar.
+
+**Antes de deixar o repositório público (fazer junto com o João):**
+- [ ] Conferir que o `.env` nunca foi commitado: `git log --all --full-history -- .env` e uma busca no histórico por `client_secret`, `GOCSPX` e pelos tokens. Se aparecer algo, limpar o histórico **e** gerar credenciais novas antes de publicar.
+- [ ] A config do Firebase (`apiKey` etc.) aparece no histórico pelo `legacy/script.js` e vai dentro do app de qualquer jeito. Isso é normal no Firebase: quem protege os dados são as regras do Firestore (Fase 1), não a chave. Explicar isso para o João em uma frase.
+- [ ] O client ID e o secret do OAuth "App para computador" do Google também acabam dentro do instalador. O Google trata esse tipo de cliente como público, então tudo bem, mas eles continuam fora do git (no `.env`, injetados no build).
+- [ ] Criar o repositório no GitHub (nome sugerido: `qfinancas`) e fazer o primeiro push. Pedir ao João para criar o repositório ou autorizar o `gh`.
+
+**Publicação das versões:**
+- [ ] `electron-builder` com `publish: { provider: "github", owner, repo, releaseType: "draft" }`.
+- [ ] O token do GitHub para publicar (`GH_TOKEN`, permissão só de "contents" nesse repositório) fica **só numa variável de ambiente do PC do João**. Nunca no código, no `.env` versionado ou dentro do app.
+- [ ] Script `npm run release`: sobe a versão (`npm version patch|minor`), gera o instalador e cria um release em rascunho no GitHub com `.exe`, `.blockmap` e `latest.yml`. O João revisa e clica em "Publish". Só a partir daí os apps instalados enxergam a versão nova.
+- [ ] Notas da versão: o script pede (ou monta a partir dos commits) um resumo curto em português do que mudou, e isso vai para o corpo do release.
+
+**No app:**
+- [ ] `electron-updater` no processo principal. Verificar ao abrir (uns 10 s depois, para não atrasar a abertura) e a cada 6 horas enquanto o app estiver aberto. Nunca verificar em modo desenvolvimento.
+- [ ] Baixar em segundo plano. Quando terminar, mostrar um aviso no app: "Versão x.y.z pronta. Reiniciar agora / Depois". Se escolher "Depois", instala sozinho quando o app for fechado (`autoInstallOnAppQuit`).
+- [ ] Em Configurações → Sobre: versão atual, botão "Procurar atualizações", chave "Atualizar automaticamente" (ligada por padrão) e as notas da última versão instalada.
+- [ ] Com a chave desligada, o app só avisa que existe versão nova, com o botão "Baixar e instalar".
+- [ ] Sem internet ou com erro no GitHub: falhar em silêncio, registrar em log (`electron-log`) e tentar de novo na próxima verificação. Erro só aparece para o João se ele clicou em "Procurar atualizações".
+- [ ] A atualização não pode mexer nos dados locais (tema, `safeStorage`, cache do Firestore, tamanho da janela). Testar isso: instalar a versão 1.0.0, publicar a 1.0.1 e conferir que tudo continua lá.
+
+**Sobre o aviso do Windows:** o app não tem assinatura digital (certificado pago), então na primeira instalação o SmartScreen pode mostrar o aviso azul ("Mais informações → Executar assim mesmo"). As atualizações automáticas funcionam mesmo assim. Comprar um certificado fica como ideia para depois.
+
+**Teste de ponta a ponta:**
+- [ ] Publicar uma versão de teste (ex.: 1.0.1 com uma mudança visível na tela Sobre), deixar o app 1.0.0 instalado detectar, baixar, reiniciar e abrir já na 1.0.1.
+- [ ] Atualizar o CLAUDE.md com o passo a passo de "como lançar uma versão nova".
 
 ## Fase 10 (opcional): Open Finance via Meu Pluggy
 
@@ -212,5 +244,5 @@ Tarefas:
 ## Ideias para depois (fora do escopo agora)
 
 - Versão de celular lendo o mesmo Firestore
-- Atualização automática do app
+- Assinatura digital do instalador (tirar o aviso do SmartScreen)
 - Divisão de gastos com outras pessoas

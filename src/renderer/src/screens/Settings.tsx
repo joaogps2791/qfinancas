@@ -1,8 +1,22 @@
 import { useEffect, useState } from 'react'
-import { ImagePlus, KeyRound, Plus, Trash2 } from 'lucide-react'
-import { friendlyError, updateSettings, updateUserProfile, useApp } from '../data/store'
+import { DatabaseBackup, ImagePlus, KeyRound, Plus, Trash2 } from 'lucide-react'
+import {
+  currentBackupData,
+  friendlyError,
+  restoreBackup,
+  updateSettings,
+  updateUserProfile,
+  useApp
+} from '../data/store'
+import {
+  backupFileName,
+  backupSummary,
+  makeBackup,
+  parseBackup,
+  type Backup
+} from '../domain/backup'
 import { iconKeyForCategoryName, PALETTE, type Card, type Category } from '../domain/categories'
-import { Avatar, Badge, Button, Card as Panel, Input } from '../components/ui'
+import { Avatar, Badge, Button, Card as Panel, Input, Modal } from '../components/ui'
 import ThemePicker from '../components/ThemePicker'
 import { IconPicker, IconBadge } from '../components/TxIcon'
 
@@ -434,6 +448,119 @@ function IntegrationsSection(): React.JSX.Element {
   )
 }
 
+// ---------- Backup ----------
+
+const stamp = new Intl.DateTimeFormat('pt-BR', {
+  dateStyle: 'short',
+  timeStyle: 'short',
+  timeZone: 'America/Sao_Paulo'
+})
+const exportedAt = (iso: string): string => {
+  const date = new Date(iso)
+  return Number.isNaN(date.getTime()) ? 'data desconhecida' : stamp.format(date)
+}
+
+const JSON_FILTER = [{ name: 'Backup do QFinanças', extensions: ['json'] }]
+
+/** Salva o que está no app agora; devolve o caminho, ou null se a pessoa cancelou. */
+function saveCurrentBackup(): Promise<string | null> {
+  const now = new Date()
+  const text = JSON.stringify(makeBackup(currentBackupData(), now), null, 2)
+  return window.api.files.save(backupFileName(now), text, JSON_FILTER)
+}
+
+function BackupSection(): React.JSX.Element {
+  const [pending, setPending] = useState<Backup | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null)
+
+  const exportNow = (): void => {
+    setMessage(null)
+    saveCurrentBackup()
+      .then((path) => path && setMessage({ text: `Backup salvo em ${path}` }))
+      .catch((e) => setMessage({ text: friendlyError(e), error: true }))
+  }
+
+  const pick = async (): Promise<void> => {
+    setMessage(null)
+    try {
+      const file = await window.api.files.open(JSON_FILTER)
+      if (!file) return
+      setPending(parseBackup(new TextDecoder().decode(file.data)))
+    } catch (e) {
+      setMessage({ text: friendlyError(e), error: true })
+    }
+  }
+
+  // Regra do projeto: nada é sobrescrito sem antes guardar um backup do que existe.
+  const restore = async (): Promise<void> => {
+    if (!pending) return
+    setBusy(true)
+    try {
+      const safety = await saveCurrentBackup()
+      if (!safety) {
+        setMessage({ text: 'Restauração cancelada: o backup do estado atual não foi salvo.' })
+        return
+      }
+      await restoreBackup(pending)
+      setMessage({ text: `Backup restaurado. O estado anterior ficou salvo em ${safety}` })
+      setPending(null)
+    } catch (e) {
+      setMessage({ text: friendlyError(e), error: true })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Panel className="settings-section">
+      <h2>Backup</h2>
+      <p className="muted">
+        <DatabaseBackup size={14} aria-hidden /> Um arquivo JSON com tudo: lançamentos,
+        investimentos, metas, orçamento, categorias e cartões. As chaves de integração não entram.
+      </p>
+      <div className="row">
+        <Button variant="primary" onClick={exportNow}>
+          Salvar backup
+        </Button>
+        <Button onClick={pick}>Restaurar backup…</Button>
+      </div>
+      {message && (
+        <p
+          className={message.error ? 'error' : 'muted small'}
+          role={message.error ? 'alert' : 'status'}
+        >
+          {message.text}
+        </p>
+      )}
+      <Modal open={!!pending} onClose={() => !busy && setPending(null)} title="Restaurar backup">
+        {pending && (
+          <div className="tx-form">
+            <p>
+              Backup de <strong>{exportedAt(pending.exportedAt)}</strong> com{' '}
+              {backupSummary(pending)}.
+            </p>
+            <p className="muted small">
+              Os itens do backup substituem os que têm o mesmo identificador no app, e as
+              configurações e o perfil voltam como estavam no backup. O que foi criado depois e não
+              está no backup continua. Antes de gravar, o app pede para você salvar um backup do que
+              está aqui agora.
+            </p>
+            <div className="tx-form__actions">
+              <Button disabled={busy} onClick={() => setPending(null)}>
+                Cancelar
+              </Button>
+              <Button variant="primary" disabled={busy} onClick={restore}>
+                {busy ? 'Restaurando…' : 'Salvar o atual e restaurar'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </Panel>
+  )
+}
+
 export default function Settings(): React.JSX.Element {
   const settings = useApp((s) => s.settings)
   const profileLoaded = useApp((s) => !!s.profile)
@@ -443,7 +570,7 @@ export default function Settings(): React.JSX.Element {
       <header className="page-head">
         <div>
           <h1>Configurações</h1>
-          <p className="muted">Perfil, aparência, categorias, cartões e integrações.</p>
+          <p className="muted">Perfil, aparência, categorias, cartões, integrações e backup.</p>
         </div>
       </header>
       {/* Recria a seção quando o perfil chega do Firestore, para o nome aparecer. */}
@@ -470,6 +597,7 @@ export default function Settings(): React.JSX.Element {
         </Panel>
       )}
       <IntegrationsSection />
+      <BackupSection />
     </div>
   )
 }
