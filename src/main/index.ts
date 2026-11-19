@@ -19,6 +19,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { googleSignIn } from './googleAuth'
 import { fetchQuotes, fetchRates } from './market'
+import { setupUpdater } from './updater'
 
 type ThemeSource = 'system' | 'light' | 'dark'
 
@@ -386,6 +387,7 @@ app.whenReady().then(() => {
   nativeTheme.on('updated', applyFrameTheme)
 
   registerIpc()
+  setupUpdater(() => mainWindow, cacheStorage)
   setTray(readJson<Background>(BACKGROUND_FILE, { enabled: false }).enabled)
   createWindow()
 })

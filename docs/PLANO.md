@@ -212,30 +212,38 @@ Notas da Fase 9:
 Como vai funcionar: as versões novas ficam publicadas nos **Releases de um repositório público no GitHub**. O app verifica se tem versão nova, baixa em segundo plano e pergunta se pode reiniciar.
 
 **Antes de deixar o repositório público (fazer junto com o João):**
-- [ ] Conferir que o `.env` nunca foi commitado: `git log --all --full-history -- .env` e uma busca no histórico por `client_secret`, `GOCSPX` e pelos tokens. Se aparecer algo, limpar o histórico **e** gerar credenciais novas antes de publicar.
-- [ ] A config do Firebase (`apiKey` etc.) aparece no histórico pelo `legacy/script.js` e vai dentro do app de qualquer jeito. Isso é normal no Firebase: quem protege os dados são as regras do Firestore (Fase 1), não a chave. Explicar isso para o João em uma frase.
-- [ ] O client ID e o secret do OAuth "App para computador" do Google também acabam dentro do instalador. O Google trata esse tipo de cliente como público, então tudo bem, mas eles continuam fora do git (no `.env`, injetados no build).
+- [x] Conferir que o `.env` nunca foi commitado: `git log --all --full-history -- .env` e uma busca no histórico por `client_secret`, `GOCSPX` e pelos tokens. Se aparecer algo, limpar o histórico **e** gerar credenciais novas antes de publicar.
+- [x] A config do Firebase (`apiKey` etc.) aparece no histórico pelo `legacy/script.js` e vai dentro do app de qualquer jeito. Isso é normal no Firebase: quem protege os dados são as regras do Firestore (Fase 1), não a chave. Explicar isso para o João em uma frase.
+- [x] O client ID e o secret do OAuth "App para computador" do Google também acabam dentro do instalador. O Google trata esse tipo de cliente como público, então tudo bem, mas eles continuam fora do git (no `.env`, injetados no build).
 - [ ] Criar o repositório no GitHub (nome sugerido: `qfinancas`) e fazer o primeiro push. Pedir ao João para criar o repositório ou autorizar o `gh`.
 
 **Publicação das versões:**
-- [ ] `electron-builder` com `publish: { provider: "github", owner, repo, releaseType: "draft" }`.
-- [ ] O token do GitHub para publicar (`GH_TOKEN`, permissão só de "contents" nesse repositório) fica **só numa variável de ambiente do PC do João**. Nunca no código, no `.env` versionado ou dentro do app.
-- [ ] Script `npm run release`: sobe a versão (`npm version patch|minor`), gera o instalador e cria um release em rascunho no GitHub com `.exe`, `.blockmap` e `latest.yml`. O João revisa e clica em "Publish". Só a partir daí os apps instalados enxergam a versão nova.
-- [ ] Notas da versão: o script pede (ou monta a partir dos commits) um resumo curto em português do que mudou, e isso vai para o corpo do release.
+- [x] `electron-builder` com `publish: { provider: "github", owner, repo, releaseType: "draft" }`.
+- [x] O token do GitHub para publicar (`GH_TOKEN`, permissão só de "contents" nesse repositório) fica **só numa variável de ambiente do PC do João**. Nunca no código, no `.env` versionado ou dentro do app.
+- [x] Script `npm run release`: sobe a versão (`npm version patch|minor`), gera o instalador e cria um release em rascunho no GitHub com `.exe`, `.blockmap` e `latest.yml`. O João revisa e clica em "Publish". Só a partir daí os apps instalados enxergam a versão nova.
+- [x] Notas da versão: o script pede (ou monta a partir dos commits) um resumo curto em português do que mudou, e isso vai para o corpo do release.
 
 **No app:**
-- [ ] `electron-updater` no processo principal. Verificar ao abrir (uns 10 s depois, para não atrasar a abertura) e a cada 6 horas enquanto o app estiver aberto. Nunca verificar em modo desenvolvimento.
-- [ ] Baixar em segundo plano. Quando terminar, mostrar um aviso no app: "Versão x.y.z pronta. Reiniciar agora / Depois". Se escolher "Depois", instala sozinho quando o app for fechado (`autoInstallOnAppQuit`).
-- [ ] Em Configurações → Sobre: versão atual, botão "Procurar atualizações", chave "Atualizar automaticamente" (ligada por padrão) e as notas da última versão instalada.
-- [ ] Com a chave desligada, o app só avisa que existe versão nova, com o botão "Baixar e instalar".
-- [ ] Sem internet ou com erro no GitHub: falhar em silêncio, registrar em log (`electron-log`) e tentar de novo na próxima verificação. Erro só aparece para o João se ele clicou em "Procurar atualizações".
+- [x] `electron-updater` no processo principal. Verificar ao abrir (uns 10 s depois, para não atrasar a abertura) e a cada 6 horas enquanto o app estiver aberto. Nunca verificar em modo desenvolvimento.
+- [x] Baixar em segundo plano. Quando terminar, mostrar um aviso no app: "Versão x.y.z pronta. Reiniciar agora / Depois". Se escolher "Depois", instala sozinho quando o app for fechado (`autoInstallOnAppQuit`).
+- [x] Em Configurações → Sobre: versão atual, botão "Procurar atualizações", chave "Atualizar automaticamente" (ligada por padrão) e as notas da última versão instalada.
+- [x] Com a chave desligada, o app só avisa que existe versão nova, com o botão "Baixar e instalar".
+- [x] Sem internet ou com erro no GitHub: falhar em silêncio, registrar em log (`electron-log`) e tentar de novo na próxima verificação. Erro só aparece para o João se ele clicou em "Procurar atualizações".
 - [ ] A atualização não pode mexer nos dados locais (tema, `safeStorage`, cache do Firestore, tamanho da janela). Testar isso: instalar a versão 1.0.0, publicar a 1.0.1 e conferir que tudo continua lá.
 
 **Sobre o aviso do Windows:** o app não tem assinatura digital (certificado pago), então na primeira instalação o SmartScreen pode mostrar o aviso azul ("Mais informações → Executar assim mesmo"). As atualizações automáticas funcionam mesmo assim. Comprar um certificado fica como ideia para depois.
 
 **Teste de ponta a ponta:**
 - [ ] Publicar uma versão de teste (ex.: 1.0.1 com uma mudança visível na tela Sobre), deixar o app 1.0.0 instalado detectar, baixar, reiniciar e abrir já na 1.0.1.
-- [ ] Atualizar o CLAUDE.md com o passo a passo de "como lançar uma versão nova".
+- [x] Atualizar o CLAUDE.md com o passo a passo de "como lançar uma versão nova".
+
+Notas da Fase 9B:
+- **Histórico conferido (19/11/2026):** o `.env` nunca foi commitado; só o `.env.example`, que está vazio. O client secret e o client ID do Google não aparecem em nenhum commit. A `apiKey` do Firebase aparece pelo `legacy/`, o que é esperado: ela é pública por natureza, e quem protege os dados são as regras do Firestore.
+- **No app:** a lógica fica em `src/main/updater.ts` (`electron-updater` + `electron-log`). O app procura 10 s depois de abrir e a cada 6 h, e nunca em desenvolvimento. O aviso "Versão x.y.z pronta. Reiniciar agora / Depois" aparece no topo; "Depois" instala ao fechar (`autoInstallOnAppQuit`). Com a chave "Atualizar automaticamente" desligada, o app só avisa, com "Baixar e instalar". A escolha e as notas da versão baixada ficam em `%APPDATA%\QFinanças\updates.json`, e os logs em `logs\main.log`.
+- **Erros:** as verificações automáticas falham em silêncio e vão para o log. "Procurar atualizações" mostra o erro, e um 404 vira "Ainda não há versões publicadas no GitHub". Testado no app empacotado, com o repositório ainda inexistente.
+- **Release:** `npm run release [patch|minor|major]` (`scripts/release.mts`) recusa sem `GH_TOKEN`, sem remote `origin` ou com mudanças pendentes. As notas vão para `build/release-notes.md`, que o electron-builder põe no corpo do release; esse arquivo está fora do git.
+- **Corrigido junto:** a tela preta depois do login, no app instalado. Era um laço de atualização causado por seletores do Zustand com `?? []`. Agora há um teste que impede o padrão de voltar.
+- **Falta, com o João:** criar o repositório público `joaogps2791/qfinancas`, fazer o primeiro push, criar o `GH_TOKEN` e fazer o teste de ponta a ponta (1.0.0 instalada → publicar a 1.0.1 → ela chega sozinha, sem perder dados locais).
 
 ## Fase 10 (opcional): Open Finance via Meu Pluggy
 

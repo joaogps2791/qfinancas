@@ -28,6 +28,7 @@ import type { ThemeSource } from '../domain/categories'
 import { Avatar, Modal } from './ui'
 import { Logo } from './Logo'
 import TransactionForm from './TransactionForm'
+import UpdateBanner from './UpdateBanner'
 import '../screens/screens.css'
 
 const NAV = [
@@ -132,6 +133,7 @@ export default function Shell(): React.JSX.Element {
     <div className="shell">
       <Sidebar />
       <main className="shell__main">
+        <UpdateBanner />
         {error && (
           <p className="banner banner--danger" role="alert">
             {error}

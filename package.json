@@ -17,10 +17,13 @@
     "build:unpack": "npm run build && electron-builder --dir --publish never",
     "build:win": "npm run build && electron-builder --win --publish never",
     "test": "vitest run",
-    "icons": "node scripts/build-icons.mts"
+    "icons": "node scripts/build-icons.mts",
+    "release": "node scripts/release.mts"
   },
   "dependencies": {
-    "@electron-toolkit/utils": "^4.0.0"
+    "@electron-toolkit/utils": "^4.0.0",
+    "electron-log": "^5.4.4",
+    "electron-updater": "^6.8.11"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.1",

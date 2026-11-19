@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BellRing, DatabaseBackup, ImagePlus, KeyRound, Plus, Trash2 } from 'lucide-react'
+import { BellRing, DatabaseBackup, ImagePlus, Info, KeyRound, Plus, Trash2 } from 'lucide-react'
 import {
   currentBackupData,
   friendlyError,
@@ -28,6 +28,7 @@ import {
 } from '../components/ui'
 import { DEFAULT_NOTIFICATIONS, type NotificationSettings } from '../domain/alerts'
 import ThemePicker from '../components/ThemePicker'
+import { useUpdateState } from '../data/updates'
 import { IconPicker, IconBadge } from '../components/TxIcon'
 
 // ---------- Perfil ----------
@@ -670,6 +671,108 @@ function BackupSection(): React.JSX.Element {
   )
 }
 
+// ---------- Sobre e atualizações ----------
+
+function AboutSection(): React.JSX.Element {
+  const [state, setState] = useUpdateState()
+  const [version, setVersion] = useState('')
+  const [auto, setAuto] = useState<boolean | null>(null)
+  const [notes, setNotes] = useState<string | null>(null)
+  const [checking, setChecking] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    Promise.all([
+      window.api.appVersion(),
+      window.api.updates.getAuto(),
+      window.api.updates.notes()
+    ]).then(([v, a, n]) => {
+      if (!alive) return
+      setVersion(v)
+      setAuto(a)
+      setNotes(n)
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const check = (): void => {
+    setChecking(true)
+    window.api.updates
+      .check()
+      .then(setState)
+      .finally(() => setChecking(false))
+  }
+  const toggleAuto = (on: boolean): void => {
+    setAuto(on)
+    void window.api.updates.setAuto(on)
+  }
+
+  const status =
+    state.status === 'disabled'
+      ? 'Em modo de desenvolvimento o app não procura atualizações.'
+      : state.status === 'checking' || checking
+        ? 'Procurando…'
+        : state.status === 'none'
+          ? 'Você está na versão mais recente.'
+          : state.status === 'available'
+            ? `Versão ${state.version} disponível.`
+            : state.status === 'downloading'
+              ? `Baixando a versão ${state.version}… ${state.percent}%`
+              : state.status === 'ready'
+                ? `Versão ${state.version} pronta. Reinicie para instalar.`
+                : state.status === 'error'
+                  ? state.message
+                  : null
+
+  return (
+    <Panel className="settings-section">
+      <h2>Sobre</h2>
+      <p className="muted">
+        <Info size={14} aria-hidden /> QFinanças <strong>{version || '…'}</strong>
+      </p>
+      <Toggle
+        label="Atualizar automaticamente"
+        description="Baixa a versão nova em segundo plano e avisa quando estiver pronta. Desligado, o app só avisa que existe versão nova."
+        checked={!!auto}
+        disabled={auto === null || state.status === 'disabled'}
+        onChange={toggleAuto}
+      />
+      <div className="row">
+        <Button
+          size="sm"
+          disabled={checking || state.status === 'disabled' || state.status === 'downloading'}
+          onClick={check}
+        >
+          Procurar atualizações
+        </Button>
+        {state.status === 'available' && (
+          <Button size="sm" variant="primary" onClick={() => window.api.updates.download()}>
+            Baixar e instalar
+          </Button>
+        )}
+        {state.status === 'ready' && (
+          <Button size="sm" variant="primary" onClick={() => window.api.updates.install()}>
+            Reiniciar agora
+          </Button>
+        )}
+      </div>
+      {status && (
+        <p className={state.status === 'error' ? 'error' : 'muted small'} role="status">
+          {status}
+        </p>
+      )}
+      {notes && (
+        <div className="release-notes">
+          <h3>Novidades da versão {version}</h3>
+          <p>{notes}</p>
+        </div>
+      )}
+    </Panel>
+  )
+}
+
 export default function Settings(): React.JSX.Element {
   const settings = useApp((s) => s.settings)
   const profileLoaded = useApp((s) => !!s.profile)
@@ -710,6 +813,7 @@ export default function Settings(): React.JSX.Element {
       {settings && <NotificationsSection saved={settings.notifications} />}
       <IntegrationsSection />
       <BackupSection />
+      <AboutSection />
     </div>
   )
 }

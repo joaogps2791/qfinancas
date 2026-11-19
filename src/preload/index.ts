@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { QuotesResult, Rates } from '../main/market'
+import type { UpdateState } from '../main/updater'
 
 type FileFilter = { name: string; extensions: string[] }
 /** Mesmo formato de AlertTarget em src/renderer/src/domain/alerts.ts. */
@@ -26,6 +27,25 @@ const api = {
     const listener = (_e: unknown, target: AlertTarget): void => callback(target)
     ipcRenderer.on('app:navigate', listener)
     return () => ipcRenderer.removeListener('app:navigate', listener)
+  },
+  /** Versão instalada (ex.: "1.0.0"). */
+  appVersion: (): Promise<string> => ipcRenderer.invoke('app:version'),
+  /** Atualização automática (só no app instalado; em desenvolvimento o estado é "disabled"). */
+  updates: {
+    state: (): Promise<UpdateState> => ipcRenderer.invoke('updates:state'),
+    /** Procura agora; erros aparecem só nesta chamada (as automáticas falham em silêncio). */
+    check: (): Promise<UpdateState> => ipcRenderer.invoke('updates:check'),
+    download: (): Promise<void> => ipcRenderer.invoke('updates:download'),
+    install: (): Promise<void> => ipcRenderer.invoke('updates:install'),
+    getAuto: (): Promise<boolean> => ipcRenderer.invoke('updates:get-auto'),
+    setAuto: (on: boolean): Promise<void> => ipcRenderer.invoke('updates:set-auto', on),
+    /** Notas da versão instalada, se ela veio por atualização. */
+    notes: (): Promise<string | null> => ipcRenderer.invoke('updates:notes'),
+    onChange: (callback: (state: UpdateState) => void): (() => void) => {
+      const listener = (_e: unknown, state: UpdateState): void => callback(state)
+      ipcRenderer.on('updates:changed', listener)
+      return () => ipcRenderer.removeListener('updates:changed', listener)
+    }
   },
   /** Bandeja + fechar para a bandeja + iniciar com o Windows (minimizado). */
   background: {

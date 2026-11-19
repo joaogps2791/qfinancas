@@ -35,15 +35,32 @@ O plano completo, dividido em fases, está em `docs/PLANO.md`. **Trabalhe uma fa
 - `npm run icons`: gera os ícones do Windows a partir de `resources/logo.svg`
 - `firebase deploy --only firestore:rules`: publica o `firestore.rules` (o João roda)
 
+- `npm run release` (ou `npm run release -- minor`): lança uma versão nova pela atualização automática (veja abaixo)
+
+### Como lançar uma versão nova
+
+1. Faça o commit de tudo (o script recusa se houver mudanças pendentes).
+2. Rode `npm.cmd run release` para uma correção ou `npm.cmd run release -- minor` para uma novidade. O script:
+   - confere o `GH_TOKEN`;
+   - sugere as notas a partir dos commits desde a última versão, e você pode escrever as suas;
+   - sobe a versão (commit "Versão x.y.z" e tag);
+   - gera o instalador e cria um **rascunho** em github.com/joaogps2791/qfinancas/releases com o `.exe`, o `.blockmap` e o `latest.yml`;
+   - faz `git push --follow-tags`.
+3. No GitHub, abra o rascunho, revise e clique em **Publish release**. Só então os apps instalados enxergam a versão: eles procuram 10 s depois de abrir e a cada 6 horas, baixam em segundo plano e avisam "Versão x.y.z pronta. Reiniciar agora / Depois".
+
+O `GH_TOKEN` (token do GitHub só com "Contents: Read and write" no repositório `qfinancas`) fica só numa variável de ambiente do usuário no PC do João, nunca no código, no `.env` ou no app. Para definir, rode `[Environment]::SetEnvironmentVariable("GH_TOKEN", "<token>", "User")` e reabra o terminal.
+
+Os logs da atualização ficam em `%APPDATA%\QFinanças\logs\main.log`. Em desenvolvimento o app nunca procura atualizações.
+
 No PowerShell deste PC o `npm` pode ser bloqueado pela política de scripts; use `npm.cmd run ...`.
 
-Empacotamento: o processo principal só carrega o `@electron-toolkit/utils` em tempo de execução, e por isso ele é a única dependência em `dependencies`. Todo o resto (React, Firebase, exceljs…) vai empacotado pelo Vite e fica em `devDependencies`, para não inchar o instalador. Uma biblioteca nova usada só na tela vai para `devDependencies`. Se for usada no processo principal, vai para `dependencies`.
+Empacotamento: o processo principal só carrega o `@electron-toolkit/utils`, o `electron-updater` e o `electron-log` em tempo de execução, e por isso eles são as únicas dependências em `dependencies`. Todo o resto (React, Firebase, exceljs…) vai empacotado pelo Vite e fica em `devDependencies`, para não inchar o instalador. Uma biblioteca nova usada só na tela vai para `devDependencies`. Se for usada no processo principal, vai para `dependencies`.
 
 O site antigo sai do ar com `firebase hosting:disable` (o João roda; Auth e Firestore continuam). O `firebase.json` só tem as regras do Firestore, e a pasta `legacy/` fica só como referência.
 
 ## Onde fica cada coisa
 
-- `src/main/`: processo principal (janela, IPC, `safeStorage`, login com Google pelo navegador, cotações da brapi e taxas do Banco Central em `market.ts`, bandeja e início com o Windows, PDF dos relatórios)
+- `src/main/`: processo principal (janela, IPC, `safeStorage`, login com Google pelo navegador, cotações da brapi e taxas do Banco Central em `market.ts`, bandeja e início com o Windows, PDF dos relatórios, atualização automática em `updater.ts`)
 - `src/preload/index.ts`: a única ponte com a tela (`window.api`)
 - `src/renderer/src/domain/`: regras de negócio puras e testadas (centavos, datas, parcelas, recorrência, categorização, orçamento e metas, leitura de OFX/CSV em `importer.ts`, relatórios em `reports.ts`, backup em `backup.ts`, vencimentos e avisos em `alerts.ts`)
 - `src/renderer/src/lib/exportExcel.ts`: planilha .xlsx do relatório (exceljs)
