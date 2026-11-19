@@ -1,0 +1,201 @@
+/* Tela de Investimentos. Só tokens de styles/tokens.css. */
+
+.invest-grid {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+.invest-grid--even {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.invest-grid .donut-card {
+  grid-template-columns: 1fr;
+}
+
+.small {
+  font-size: var(--text-xs);
+}
+
+.page .banner {
+  margin: 0;
+}
+.banner--warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+  display: grid;
+  gap: var(--space-1);
+}
+
+/* Fatias por classe (mesma ordem de CLASS_ORDER em Investments.tsx) */
+.alloc--acao {
+  fill: var(--chart-1);
+}
+.alloc--fii {
+  fill: var(--chart-2);
+}
+.alloc--etf {
+  fill: var(--chart-3);
+}
+.alloc--tesouro {
+  fill: var(--chart-4);
+}
+.alloc--cdb {
+  fill: var(--chart-5);
+}
+.alloc--lci_lca {
+  fill: var(--chart-6);
+}
+.alloc--poupanca {
+  fill: var(--chart-7);
+}
+.alloc--outro {
+  fill: var(--chart-8);
+}
+
+.table-card h2 {
+  margin-bottom: var(--space-3);
+}
+.table-card > .muted {
+  margin-bottom: var(--space-3);
+}
+.table-scroll {
+  overflow-x: auto;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+.data-table th {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.data-table td {
+  padding: var(--space-3);
+  border-top: 1px solid var(--border);
+  vertical-align: top;
+}
+.data-table td strong,
+.data-table td small {
+  display: block;
+}
+.data-table td small {
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.data-table td small.positive {
+  color: var(--success);
+}
+.data-table td small.negative {
+  color: var(--danger);
+}
+.data-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+.data-table--compact td {
+  padding: var(--space-2) var(--space-3);
+  vertical-align: middle;
+}
+.cell-input {
+  width: 72px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  text-align: right;
+}
+
+.dividends-card {
+  display: grid;
+  gap: var(--space-3);
+}
+.dividends-card > h2 {
+  margin-bottom: 0;
+}
+.dividends-card h3 {
+  margin-top: var(--space-2);
+}
+
+.mini-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.mini-list li {
+  display: grid;
+  grid-template-columns: 1fr auto 32px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.mini-list small {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.targets {
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+.progress {
+  height: 10px;
+  margin-top: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+.progress span.is-done {
+  background: var(--success);
+}
+.targets-editor {
+  display: grid;
+  gap: var(--space-3);
+}
+.add-row--3 {
+  grid-template-columns: 1fr 140px auto;
+}
+
+.statement__row--history {
+  grid-template-columns: minmax(0, 1fr) 72px 140px 32px;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}
+
+@media (max-width: 1240px) {
+  .invest-grid,
+  .invest-grid--even {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

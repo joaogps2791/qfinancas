@@ -488,3 +488,7 @@
   font-weight: 700;
   color: var(--text-muted);
 }
+.ui-stat__note {
+  font-size: var(--text-xs);
+  opacity: 0.8;
+}

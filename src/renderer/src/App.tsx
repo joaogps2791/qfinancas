@@ -8,6 +8,7 @@ import Dashboard from './screens/Dashboard'
 import Transactions from './screens/Transactions'
 import Cards from './screens/Cards'
 import Settings from './screens/Settings'
+import Investments from './screens/Investments'
 import Soon from './screens/Soon'
 import DevUi from './screens/DevUi'
 
@@ -57,7 +58,7 @@ export default function App(): React.JSX.Element {
               <Route index element={<Dashboard />} />
               <Route path="transacoes" element={<Transactions />} />
               <Route path="cartoes" element={<Cards />} />
-              <Route path="investimentos" element={<Soon title="Investimentos" phase="Fase 4" />} />
+              <Route path="investimentos" element={<Investments />} />
               <Route path="metas" element={<Soon title="Metas" phase="Fase 5" />} />
               <Route path="relatorios" element={<Soon title="Relatórios" phase="Fase 7" />} />
               <Route path="configuracoes" element={<Settings />} />

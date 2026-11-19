@@ -86,6 +86,8 @@ type StatCardProps = {
   tone?: Tone
   spark?: number[]
   icon?: ReactNode
+  /** linha pequena embaixo do valor (ex.: "de R$ 1.000,00 planejados") */
+  note?: string
 }
 
 export function StatCard({
@@ -95,7 +97,8 @@ export function StatCard({
   higherIsWorse = false,
   tone = 'default',
   spark,
-  icon
+  icon,
+  note
 }: StatCardProps): React.JSX.Element {
   const good = change == null || change === 0 ? null : change > 0 !== higherIsWorse
   return (
@@ -118,6 +121,7 @@ export function StatCard({
       </div>
       <strong className="ui-stat__value">{formatBRL(valueCents)}</strong>
       {spark && <Sparkline points={spark} />}
+      {note && <small className="ui-stat__note">{note}</small>}
     </Card>
   )
 }

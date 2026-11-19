@@ -115,14 +115,22 @@ Modelo de dados (Firestore, em `users/{uid}/`):
 - `dividends/{id}`: `ticker`, `type` (rendimento | dividendo | jcp), `amountCents`, `paymentDate`, `exDate`.
 
 Tarefas:
-- [ ] **Carteira e aportes:** registrar compra/venda, preço médio ponderado (venda não altera o preço médio), resultado realizado e não realizado. Testes unitários para o preço médio.
-- [ ] **Cotações automáticas (ações, FIIs, ETFs):** usar a API da **brapi.dev** (`/api/quote/{tickers}`). O João cria um token gratuito e cola em Configurações → Integrações. As chamadas saem do processo principal do Electron, com cache local de 15 minutos e botão "Atualizar". Conferir na documentação atual da brapi o que o plano gratuito permite (limite de requisições, quais tickers exigem token) e mostrar mensagem clara se o limite estourar.
-- [ ] Mostrar para FIIs: cotação, P/VP e dividend yield, se a brapi fornecer esses campos. Se não, deixar o campo para preencher à mão.
-- [ ] **Tesouro e renda fixa:** valor estimado hoje = valor aplicado corrigido pela taxa contratada. Buscar a Selic e o CDI diários na API pública do Banco Central (SGS: série 11 para Selic diária, 12 para CDI diário; série 433 para IPCA mensal). Deixar claro na tela que é **estimativa** (antes de IR e sem marcação a mercado). Mostrar o IR regressivo estimado conforme o prazo.
-- [ ] **Proventos de FIIs:** lançar à mão, com a opção "repetir o último valor" para FIIs que pagam todo mês. Totais por mês e por ativo, yield sobre o custo.
-- [ ] **Tela de Investimentos:** card com patrimônio total e variação; donut por classe (Renda fixa, FIIs, Ações...); tabela de ativos (ticker, quantidade, preço médio, cotação, valor, resultado em %); gráfico de proventos por mês; histórico de aportes.
-- [ ] **Aporte mensal planejado:** o João pode cadastrar uma meta de aporte por mês e por ativo/classe, e o Dashboard mostra quanto já foi aportado no mês.
-- [ ] Integração com o resto do app: um aporte pode gerar (opcionalmente) uma saída "Investimentos" no extrato do mês, para o saldo do mês bater.
+- [x] **Carteira e aportes:** registrar compra/venda, preço médio ponderado (venda não altera o preço médio), resultado realizado e não realizado. Testes unitários para o preço médio.
+- [x] **Cotações automáticas (ações, FIIs, ETFs):** usar a API da **brapi.dev** (`/api/quote/{tickers}`). O João cria um token gratuito e cola em Configurações → Integrações. As chamadas saem do processo principal do Electron, com cache local de 15 minutos e botão "Atualizar". Conferir na documentação atual da brapi o que o plano gratuito permite (limite de requisições, quais tickers exigem token) e mostrar mensagem clara se o limite estourar.
+- [x] Mostrar para FIIs: cotação, P/VP e dividend yield, se a brapi fornecer esses campos. Se não, deixar o campo para preencher à mão.
+- [x] **Tesouro e renda fixa:** valor estimado hoje = valor aplicado corrigido pela taxa contratada. Buscar a Selic e o CDI diários na API pública do Banco Central (SGS: série 11 para Selic diária, 12 para CDI diário; série 433 para IPCA mensal). Deixar claro na tela que é **estimativa** (antes de IR e sem marcação a mercado). Mostrar o IR regressivo estimado conforme o prazo.
+- [x] **Proventos de FIIs:** lançar à mão, com a opção "repetir o último valor" para FIIs que pagam todo mês. Totais por mês e por ativo, yield sobre o custo.
+- [x] **Tela de Investimentos:** card com patrimônio total e variação; donut por classe (Renda fixa, FIIs, Ações...); tabela de ativos (ticker, quantidade, preço médio, cotação, valor, resultado em %); gráfico de proventos por mês; histórico de aportes.
+- [x] **Aporte mensal planejado:** o João pode cadastrar uma meta de aporte por mês e por ativo/classe, e o Dashboard mostra quanto já foi aportado no mês.
+- [x] Integração com o resto do app: um aporte pode gerar (opcionalmente) uma saída "Investimentos" no extrato do mês, para o saldo do mês bater.
+
+Notas da Fase 4:
+- **brapi (conferido na documentação em 19/11/2026):** o plano grátis dá 15 mil requisições por mês, **1 ticker por requisição**, 1 requisição por vez e cotação atualizada a cada 30 minutos. O app busca um ticker por vez pelo endpoint `/api/quote/{ticker}`, com cache de 15 minutos. Sem token, só PETR4, VALE3, ITUB4 e MGLU3 respondem; os outros pedem o token. P/VP e dividend yield de FIIs só existem nos planos pagos, então ficam para preencher à mão.
+- **Banco Central:** séries 11 (Selic), 12 (CDI) e 433 (IPCA), sem cadastro. Elas ficam guardadas no PC e são renovadas uma vez por dia. O SGS aceita no máximo 10 anos por consulta, então o app divide o período.
+- **`holdings` não é gravada:** as posições são calculadas na hora a partir das operações. Dá o mesmo resultado e nunca fica desatualizada.
+- **Simplificações da estimativa de renda fixa:** o IPCA conta só meses inteiros já publicados, sem pró-rata do mês corrente. A poupança rende 0,5% por mês completo, sem TR. O prefixado usa os dias úteis da série do CDI.
+- Apagar uma operação ou aplicação não apaga o lançamento "Investimentos" que ela criou no extrato.
+- As metas de aporte ficam em `settings/main.contributionTargets`, e o P/VP e o DY à mão em `settings/main.assetInfo`.
 
 ## Fase 5: Metas e orçamento
 

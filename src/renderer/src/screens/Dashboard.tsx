@@ -21,7 +21,6 @@ import {
   Wallet
 } from 'lucide-react'
 import { openComposer, useApp } from '../data/store'
-import { normalizeText } from '../domain/categories'
 import {
   daysUntil,
   formatBRL,
@@ -40,6 +39,7 @@ import {
 import { Badge, Button, Card, EmptyState, Pills, StatCard } from '../components/ui'
 import MonthPicker from '../components/MonthPicker'
 import Statement from '../components/Statement'
+import { contributionsInMonth } from '../domain/investments'
 
 type Metric = 'expenseCents' | 'incomeCents' | 'balanceCents'
 
@@ -56,14 +56,14 @@ const compact = new Intl.NumberFormat('pt-BR', {
   maximumFractionDigits: 1
 })
 
-/** Gastos lançados numa categoria de investimento (os aportes da Fase 4 também caem aqui). */
-const investedCents = (entries: MonthEntry[]): number =>
-  entries
-    .filter(
-      (e) =>
-        e.transaction.kind !== 'income' && normalizeText(e.transaction.category).includes('invest')
-    )
-    .reduce((sum, e) => sum + e.amountCents, 0)
+/** Aportes do mês na carteira (compras e aplicações de renda fixa). */
+function useInvestedCents(month: string): number {
+  const { investmentTransactions, fixedIncome } = useApp((s) => s.investments)
+  return contributionsInMonth(investmentTransactions, fixedIncome, month).reduce(
+    (sum, c) => sum + c.cents,
+    0
+  )
+}
 
 function CashFlow({ series, month }: { series: MonthPoint[]; month: string }): React.JSX.Element {
   const [metric, setMetric] = useState<Metric>('expenseCents')
@@ -255,13 +255,13 @@ export default function Dashboard(): React.JSX.Element {
 
   const series = useMemo(() => monthlySeries(transactions, month, 6), [transactions, month])
   const entries = useMemo(() => monthEntries(transactions, month), [transactions, month])
-  const previousEntries = useMemo(
-    () => monthEntries(transactions, series[series.length - 2]?.month ?? month),
-    [transactions, series, month]
-  )
   const now = series[series.length - 1]
   const before = series[series.length - 2]
-  const invested = investedCents(entries)
+  const invested = useInvestedCents(month)
+  const investedBefore = useInvestedCents(before.month)
+  const goal = useApp((s) =>
+    (s.settings?.contributionTargets ?? []).reduce((sum, t) => sum + t.monthlyCents, 0)
+  )
   const spark = (key: Metric): number[] => series.map((p) => p[key])
 
   return (
@@ -309,7 +309,8 @@ export default function Dashboard(): React.JSX.Element {
           label="Investido"
           icon={<PiggyBank size={16} />}
           valueCents={invested}
-          change={percentChange(invested, investedCents(previousEntries))}
+          change={percentChange(invested, investedBefore)}
+          note={goal ? `de ${formatBRL(goal)} planejados` : undefined}
         />
       </section>
 

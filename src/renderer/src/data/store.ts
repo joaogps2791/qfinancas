@@ -21,7 +21,7 @@ import {
   writeBatch
 } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
-import { defaultSettings, type Settings, type ThemeSource } from '../domain/categories'
+import { defaultSettings, PALETTE, type Settings, type ThemeSource } from '../domain/categories'
 import {
   monthKey,
   shiftMonthKey,
@@ -29,8 +29,27 @@ import {
   type Transaction,
   type TransactionInput
 } from '../domain/finance'
+import type { Dividend, FixedIncome, InvestmentTransaction } from '../domain/investments'
 
 export type Profile = { displayName: string; photoURL: string; photoDataUrl?: string }
+
+/** Coleções de investimentos em users/{uid}/ (as posições são calculadas, não gravadas). */
+export const INVESTMENT_COLLECTIONS = [
+  'investmentTransactions',
+  'fixedIncome',
+  'dividends'
+] as const
+type InvestmentCollection = (typeof INVESTMENT_COLLECTIONS)[number]
+type Investments = {
+  investmentTransactions: InvestmentTransaction[]
+  fixedIncome: FixedIncome[]
+  dividends: Dividend[]
+}
+const EMPTY_INVESTMENTS: Investments = {
+  investmentTransactions: [],
+  fixedIncome: [],
+  dividends: []
+}
 
 type AppState = {
   /** undefined enquanto o Firebase ainda não respondeu se há alguém logado */
@@ -38,6 +57,7 @@ type AppState = {
   settings: Settings | null
   profile: Profile | null
   transactions: Transaction[]
+  investments: Investments
   error: string | null
   /** escolha de tema em uso (vem do PC ao abrir e de settings/main.theme depois do login) */
   theme: ThemeSource
@@ -52,6 +72,7 @@ export const useApp = create<AppState>(() => ({
   settings: null,
   profile: null,
   transactions: [],
+  investments: EMPTY_INVESTMENTS,
   error: null,
   theme: window.api.theme.getSource(),
   month: monthKey(todayISO()),
@@ -80,7 +101,14 @@ let unsubscribers: (() => void)[] = []
 onAuthStateChanged(auth, (user) => {
   unsubscribers.forEach((stop) => stop())
   unsubscribers = []
-  useApp.setState({ user, settings: null, profile: null, transactions: [], error: null })
+  useApp.setState({
+    user,
+    settings: null,
+    profile: null,
+    transactions: [],
+    investments: EMPTY_INVESTMENTS,
+    error: null
+  })
   if (!user) return
 
   const onError = (error: Error): void => useApp.setState({ error: friendlyError(error) })
@@ -112,6 +140,19 @@ onAuthStateChanged(auth, (user) => {
           transactions: snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Transaction)
         }),
       onError
+    ),
+    ...INVESTMENT_COLLECTIONS.map((name) =>
+      onSnapshot(
+        collection(db, ...userPath(user.uid, name)),
+        (snap) =>
+          useApp.setState((s) => ({
+            investments: {
+              ...s.investments,
+              [name]: snap.docs.map((d) => ({ ...d.data(), id: d.id }))
+            }
+          })),
+        onError
+      )
     )
   )
 })
@@ -162,6 +203,56 @@ export async function updateTransaction(id: string, input: TransactionInput): Pr
 
 export async function deleteTransaction(id: string): Promise<void> {
   await deleteDoc(doc(db, ...userPath(requireUid(), 'transactions', id)))
+}
+
+// ---------- Investimentos ----------
+
+type WithoutId<T> = Omit<T, 'id'>
+
+/** Grava uma operação, aplicação de renda fixa ou provento. */
+export async function addInvestmentDoc<C extends InvestmentCollection>(
+  name: C,
+  data: WithoutId<Investments[C][number]>
+): Promise<void> {
+  const ref = doc(collection(db, ...userPath(requireUid(), name)))
+  await setDoc(ref, { ...data, createdAt: serverTimestamp() })
+}
+
+export async function deleteInvestmentDoc(name: InvestmentCollection, id: string): Promise<void> {
+  await deleteDoc(doc(db, ...userPath(requireUid(), name, id)))
+}
+
+const INVEST_CATEGORY = 'Investimentos'
+
+/** Lança o aporte também como saída "Investimentos" no extrato, para o saldo do mês bater. */
+export async function addInvestmentToStatement(
+  description: string,
+  amountCents: number,
+  date: string
+): Promise<void> {
+  const settings = useApp.getState().settings
+  if (settings && !settings.categories.some((c) => c.name === INVEST_CATEGORY)) {
+    await updateSettings({
+      categories: [
+        ...settings.categories,
+        {
+          name: INVEST_CATEGORY,
+          color: PALETTE[settings.categories.length % PALETTE.length],
+          icon: 'invest'
+        }
+      ]
+    })
+  }
+  await addTransactions([
+    {
+      kind: 'cash',
+      description,
+      amountCents,
+      date,
+      category: INVEST_CATEGORY,
+      paymentMethod: 'Transferência'
+    }
+  ])
 }
 
 // ---------- Configurações e perfil ----------

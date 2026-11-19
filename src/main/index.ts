@@ -15,6 +15,7 @@ import { readFile, writeFile } from 'fs/promises'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { googleSignIn } from './googleAuth'
+import { fetchQuotes, fetchRates } from './market'
 
 type ThemeSource = 'system' | 'light' | 'dark'
 
@@ -145,6 +146,17 @@ const validSecretKey = (key: unknown): key is string =>
 
 const readSecrets = (): Record<string, string> => readJson<Record<string, string>>(SECRETS_FILE, {})
 
+function getSecret(key: string): string | null {
+  const stored = readSecrets()[key]
+  return stored ? safeStorage.decryptString(Buffer.from(stored, 'base64')) : null
+}
+
+// Data de hoje em São Paulo (YYYY-MM-DD), como no renderer.
+const todaySaoPaulo = (): string =>
+  new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())
+
+const cacheStorage = { read: readJson, write: writeJson }
+
 // ---------- IPC ----------
 
 function registerIpc(): void {
@@ -168,8 +180,7 @@ function registerIpc(): void {
 
   ipcMain.handle('secrets:get', (_e, key: unknown) => {
     if (!validSecretKey(key)) throw new Error('Chave inválida.')
-    const stored = readSecrets()[key]
-    return stored ? safeStorage.decryptString(Buffer.from(stored, 'base64')) : null
+    return getSecret(key)
   })
   ipcMain.handle('secrets:has', (_e, key: unknown) => {
     if (!validSecretKey(key)) throw new Error('Chave inválida.')
@@ -217,6 +228,13 @@ function registerIpc(): void {
   ipcMain.handle('open-external', (_e, url: string) => openExternalSafe(String(url)))
 
   ipcMain.handle('auth:google', () => googleSignIn(openExternalSafe))
+
+  ipcMain.handle('market:quotes', (_e, tickers: unknown, force: unknown) =>
+    fetchQuotes(tickers, force === true, getSecret('brapi.token'), cacheStorage)
+  )
+  ipcMain.handle('market:rates', (_e, from: unknown) =>
+    fetchRates(from, todaySaoPaulo(), cacheStorage)
+  )
 }
 
 // ---------- Início ----------

@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { QuotesResult, Rates } from '../main/market'
 
 type FileFilter = { name: string; extensions: string[] }
 
@@ -35,6 +36,13 @@ const api = {
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke('open-external', url),
   auth: {
     googleSignIn: (): Promise<string> => ipcRenderer.invoke('auth:google')
+  },
+  market: {
+    /** Cotações da brapi (cache de 15 min; `force` ignora o cache). */
+    quotes: (tickers: string[], force = false): Promise<QuotesResult> =>
+      ipcRenderer.invoke('market:quotes', tickers, force),
+    /** Selic e CDI diários e IPCA mensal do Banco Central, desde `from` (YYYY-MM-DD). */
+    rates: (from: string): Promise<Rates> => ipcRenderer.invoke('market:rates', from)
   }
 }
 

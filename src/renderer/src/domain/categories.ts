@@ -10,6 +10,10 @@ export type Settings = {
   theme: ThemeSource
   categories: Category[]
   cards: Card[]
+  /** meta de aporte por mês; `key` é "class:<tipo>" (ex.: class:fii) ou "ticker:<TICKER>" */
+  contributionTargets?: { key: string; monthlyCents: number }[]
+  /** P/VP e dividend yield (%) preenchidos à mão: o plano grátis da brapi não traz esses campos */
+  assetInfo?: Record<string, { pvp?: number; dy?: number }>
 }
 
 export const DEFAULT_CATEGORIES = [

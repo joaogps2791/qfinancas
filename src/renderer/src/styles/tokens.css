@@ -45,6 +45,16 @@
   --brand: #d9540f;
   --brand-contrast: #ffffff;
 
+  /* Cores de gráfico (séries e fatias), as mesmas famílias nos dois temas */
+  --chart-1: #3f8f7a;
+  --chart-2: #e07a3f;
+  --chart-3: #7a6ee0;
+  --chart-4: #c9a227;
+  --chart-5: #4f86c6;
+  --chart-6: #d1497b;
+  --chart-7: #8a7f72;
+  --chart-8: #5a9a4a;
+
   --shadow-sm: 0 1px 2px rgb(40 32 20 / 0.06);
   --shadow-md: 0 6px 20px rgb(40 32 20 / 0.08);
   --overlay: rgb(29 27 24 / 0.45);
@@ -87,6 +97,15 @@
 
   --brand: #f26b1d;
   --brand-contrast: #ffffff;
+
+  --chart-1: #5fbfa4;
+  --chart-2: #f2915a;
+  --chart-3: #9b91f0;
+  --chart-4: #e3c04a;
+  --chart-5: #74a8e6;
+  --chart-6: #ea6f9b;
+  --chart-7: #a8a29a;
+  --chart-8: #7cc06a;
 
   --shadow-sm: none;
   --shadow-md: 0 8px 28px rgb(0 0 0 / 0.5);
