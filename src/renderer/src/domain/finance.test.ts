@@ -3,8 +3,10 @@ import {
   addMonths,
   buildRecurringSeries,
   expandInstallments,
+  formatPercent,
   monthEntries,
   parseAmountToCents,
+  percentChange,
   shiftMonthKey,
   splitCents,
   summarizeEntries,
@@ -26,6 +28,21 @@ describe('parseAmountToCents', () => {
     expect(parseAmountToCents('abc')).toBeNull()
     expect(parseAmountToCents('1,234')).toBeNull()
     expect(parseAmountToCents('-10')).toBeNull()
+  })
+})
+
+describe('percentChange / formatPercent', () => {
+  it('calcula a variação contra o mês anterior', () => {
+    expect(percentChange(11000, 10000)).toBeCloseTo(0.1)
+    expect(percentChange(9000, 10000)).toBeCloseTo(-0.1)
+    // saldo negativo que melhora é variação positiva
+    expect(percentChange(-5000, -10000)).toBeCloseTo(0.5)
+    expect(percentChange(5000, 0)).toBeNull()
+  })
+  it('formata com sinal e vírgula', () => {
+    expect(formatPercent(0.123).replace(/\s/g, ' ')).toBe('+12,3%')
+    expect(formatPercent(-0.05)).toBe('-5%')
+    expect(formatPercent(0)).toBe('0%')
   })
 })
 

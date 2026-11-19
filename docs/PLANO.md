@@ -73,12 +73,14 @@ Referências em `docs/design/` (veja o README de lá). Resumo da direção:
 - **Igual nos dois temas:** a estrutura das telas. Sidebar escura à esquerda com **foto grande do usuário, "Bem-vindo de volta," + nome** e o menu com ícones. Essa sidebar foi o que o João mais gostou da referência 1.
 
 Tarefas:
-- [ ] Definir tokens em CSS (`--bg`, `--surface`, `--surface-2`, `--border`, `--text`, `--text-muted`, `--accent`, `--accent-contrast`, `--success`, `--danger`, `--warning`, `--card-1..3`, raios, sombras, espaçamentos) para `[data-theme="light"]` e `[data-theme="dark"]`. As cores das imagens são aproximadas: ajuste para ter contraste AA no texto.
-- [ ] Tipografia: escolher uma fonte (sugestão: Inter, Manrope ou Plus Jakarta Sans) empacotada no app, sem Google Fonts online.
-- [ ] Tema: `nativeTheme.shouldUseDarkColors` no início + ouvir `nativeTheme.on("updated")`. Configuração "Sistema / Claro / Escuro" salva em `settings/main.theme`, com troca instantânea e sem piscar a tela ao abrir.
+- [x] Definir tokens em CSS (`--bg`, `--surface`, `--surface-2`, `--border`, `--text`, `--text-muted`, `--accent`, `--accent-contrast`, `--success`, `--danger`, `--warning`, `--card-1..3`, raios, sombras, espaçamentos) para `[data-theme="light"]` e `[data-theme="dark"]`. As cores das imagens são aproximadas: ajuste para ter contraste AA no texto.
+- [x] Tipografia: escolher uma fonte (sugestão: Inter, Manrope ou Plus Jakarta Sans) empacotada no app, sem Google Fonts online.
+- [x] Tema: `nativeTheme.shouldUseDarkColors` no início + ouvir `nativeTheme.on("updated")`. Configuração "Sistema / Claro / Escuro" salva em `settings/main.theme`, com troca instantânea e sem piscar a tela ao abrir.
+  - Fonte: Plus Jakarta Sans (pacote `@fontsource-variable/plus-jakarta-sans`). O tema escolhido também fica salvo no PC (`theme.json`), para a janela já abrir na cor certa.
 - [ ] **Logo novo:** propor **3 opções** em SVG (símbolo + nome "QFinanças"), que funcionem em fundo claro e escuro e reduzidas a 16 px. Mostrar as 3 para o João escolher antes de seguir. Depois gerar o `.ico` do Windows (16 a 256 px), o ícone da barra de tarefas e o da tela de carregamento.
-- [ ] Componentes base: Botão, Card, StatCard (com variação %), Input, Select, Modal, Tabs/Pills, Badge, Toggle, Tooltip, Avatar, EmptyState, Skeleton.
-- [ ] Uma página escondida `/dev/ui` mostrando todos os componentes nos dois temas, para revisão.
+  - As 3 propostas estão em `/dev/ui` (Ctrl+Shift+U): Anel, Bloco e Donut. **Aguardando a escolha do João** para gerar o `.ico` e os ícones.
+- [x] Componentes base: Botão, Card, StatCard (com variação %), Input, Select, Modal, Tabs/Pills, Badge, Toggle, Tooltip, Avatar, EmptyState, Skeleton.
+- [x] Uma página escondida `/dev/ui` mostrando todos os componentes nos dois temas, para revisão.
 
 ## Fase 3: Redesenhar as telas que já existem
 

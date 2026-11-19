@@ -21,7 +21,7 @@ import {
   writeBatch
 } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
-import { defaultSettings, type Settings } from '../domain/categories'
+import { defaultSettings, type Settings, type ThemeSource } from '../domain/categories'
 import type { Transaction, TransactionInput } from '../domain/finance'
 
 type AppState = {
@@ -30,13 +30,16 @@ type AppState = {
   settings: Settings | null
   transactions: Transaction[]
   error: string | null
+  /** escolha de tema em uso (vem do PC ao abrir e de settings/main.theme depois do login) */
+  theme: ThemeSource
 }
 
 export const useApp = create<AppState>(() => ({
   user: undefined,
   settings: null,
   transactions: [],
-  error: null
+  error: null,
+  theme: window.api.theme.getSource()
 }))
 
 const userPath = (uid: string, ...segments: string[]): [string, ...string[]] => [
@@ -62,7 +65,14 @@ onAuthStateChanged(auth, (user) => {
   unsubscribers.push(
     onSnapshot(
       doc(db, ...userPath(user.uid, 'settings', 'main')),
-      (snap) => snap.exists() && useApp.setState({ settings: snap.data() as Settings }),
+      (snap) => {
+        if (!snap.exists()) return
+        const settings = snap.data() as Settings
+        const theme = settings.theme ?? 'system'
+        useApp.setState({ settings, theme })
+        // O processo principal guarda o tema no PC para abrir já na cor certa, sem piscar.
+        window.api.theme.setSource(theme)
+      },
       onError
     ),
     onSnapshot(
@@ -148,6 +158,16 @@ export const resetPassword = (email: string): Promise<void> =>
   sendPasswordResetEmail(auth, email.trim())
 
 export const signOut = (): Promise<void> => firebaseSignOut(auth)
+
+// ---------- Configurações ----------
+
+/** Troca o tema na hora e, com alguém logado, salva em settings/main.theme. */
+export async function setThemeSource(theme: ThemeSource): Promise<void> {
+  useApp.setState({ theme })
+  await window.api.theme.setSource(theme)
+  const uid = useApp.getState().user?.uid
+  if (uid) await setDoc(doc(db, ...userPath(uid, 'settings', 'main')), { theme }, { merge: true })
+}
 
 // ---------- Mensagens de erro ----------
 

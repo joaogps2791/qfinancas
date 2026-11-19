@@ -40,6 +40,19 @@ const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: '
 
 export const formatBRL = (cents: number): string => currency.format(cents / 100)
 
+const percent = new Intl.NumberFormat('pt-BR', {
+  style: 'percent',
+  maximumFractionDigits: 1,
+  signDisplay: 'exceptZero'
+})
+
+/** 0.123 → "+12,3%" */
+export const formatPercent = (ratio: number): string => percent.format(ratio)
+
+/** Variação de um mês para o outro; sem base de comparação (mês anterior zerado) devolve null. */
+export const percentChange = (currentCents: number, previousCents: number): number | null =>
+  previousCents === 0 ? null : (currentCents - previousCents) / Math.abs(previousCents)
+
 /** "1.234,56" → 123456. Ponto é separador de milhar, vírgula é decimal. */
 export function parseAmountToCents(text: string): number | null {
   const clean = text.replace(/R\$|\s/g, '').replace(/\./g, '')

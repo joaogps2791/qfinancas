@@ -11,6 +11,7 @@ import {
   monthKey,
   parseAmountToCents,
   PAYMENT_METHODS,
+  percentChange,
   shiftMonthKey,
   summarizeEntries,
   todayISO,
@@ -18,6 +19,8 @@ import {
   type Transaction,
   type TransactionInput
 } from '../domain/finance'
+import { Button, StatCard } from '../components/ui'
+import ThemePicker from '../components/ThemePicker'
 
 // shortcut: tela provisória da Fase 1 (lançar e listar); o visual de verdade vem na Fase 3.
 
@@ -27,15 +30,24 @@ export default function Home(): React.JSX.Element {
 
   const entries = useMemo(() => monthEntries(transactions, month), [transactions, month])
   const summary = summarizeEntries(entries)
+  const previous = useMemo(
+    () => summarizeEntries(monthEntries(transactions, shiftMonthKey(month, -1))),
+    [transactions, month]
+  )
 
   return (
     <main className="page">
       <header className="row between">
         <div>
           <h1>Olá, {user?.displayName || user?.email}</h1>
-          <p className="muted">Fase 1: base do app. O visual novo vem nas próximas fases.</p>
+          <p className="muted">
+            Tela provisória. O visual novo chega na Fase 3 (Ctrl+Shift+U abre o design system).
+          </p>
         </div>
-        <button onClick={signOut}>Sair</button>
+        <div className="row">
+          <ThemePicker />
+          <Button onClick={signOut}>Sair</Button>
+        </div>
       </header>
 
       {error && <p className="error">{error}</p>}
@@ -51,10 +63,31 @@ export default function Home(): React.JSX.Element {
       </div>
 
       <section className="stats">
-        <Stat label="Entradas" cents={summary.incomeCents} />
-        <Stat label="À vista" cents={summary.cashCents} />
-        <Stat label="Cartões" cents={summary.cardCents} />
-        <Stat label="Saldo do mês" cents={summary.balanceCents} />
+        <StatCard
+          label="Saldo do mês"
+          tone="sage"
+          valueCents={summary.balanceCents}
+          change={percentChange(summary.balanceCents, previous.balanceCents)}
+        />
+        <StatCard
+          label="Entradas"
+          tone="butter"
+          valueCents={summary.incomeCents}
+          change={percentChange(summary.incomeCents, previous.incomeCents)}
+        />
+        <StatCard
+          label="Saídas"
+          tone="lilac"
+          higherIsWorse
+          valueCents={summary.expenseCents}
+          change={percentChange(summary.expenseCents, previous.expenseCents)}
+        />
+        <StatCard
+          label="Cartões"
+          higherIsWorse
+          valueCents={summary.cardCents}
+          change={percentChange(summary.cardCents, previous.cardCents)}
+        />
       </section>
 
       <div className="columns">
@@ -69,15 +102,6 @@ export default function Home(): React.JSX.Element {
         <EntryList entries={entries} />
       </div>
     </main>
-  )
-}
-
-function Stat({ label, cents }: { label: string; cents: number }): React.JSX.Element {
-  return (
-    <div className="card">
-      <span className="muted">{label}</span>
-      <strong className={cents < 0 ? 'negative' : undefined}>{formatBRL(cents)}</strong>
-    </div>
   )
 }
 

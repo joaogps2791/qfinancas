@@ -1,0 +1,124 @@
+/*
+ * Design system do QFinanças. Toda cor da interface sai daqui.
+ * Claro: direção da referência 1 (bege quente, cards pastel, sidebar escura).
+ * Escuro: direção da referência 2 (quase preto, laranja de destaque).
+ * O contraste dos pares de texto é checado em tokens.test.ts.
+ */
+
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #f1ede4;
+  --surface: #ffffff;
+  --surface-2: #f7f4ee;
+  --border: #e3ddd1;
+  --text: #1d1b18;
+  --text-muted: #67615a;
+
+  --accent: #2b2a27;
+  --accent-hover: #3d3b37;
+  --accent-contrast: #ffffff;
+  --accent-gradient: linear-gradient(180deg, #4a4843 0%, #2b2a27 100%);
+  --accent-soft: #e9e5dc;
+
+  --success: #256c42;
+  --success-soft: #dcefe2;
+  --danger: #b8352a;
+  --danger-soft: #f7dfdb;
+  --warning: #8f5f00;
+  --warning-soft: #f8ebcc;
+
+  /* Cards de destaque em tons pastel */
+  --card-1: #ccd6c0;
+  --card-2: #f6d98f;
+  --card-3: #b4b3f3;
+  --card-text: #1d1b18;
+
+  /* Sidebar é escura nos dois temas */
+  --sidebar-bg: #262624;
+  --sidebar-text: #f4f2ee;
+  --sidebar-muted: #b3aea6;
+  --sidebar-active: #3a3936;
+
+  /* Cor da marca (logo); a mesma nos dois temas, legível no claro e no escuro */
+  --brand: #d9540f;
+  --brand-contrast: #ffffff;
+
+  --shadow-sm: 0 1px 2px rgb(40 32 20 / 0.06);
+  --shadow-md: 0 6px 20px rgb(40 32 20 / 0.08);
+  --overlay: rgb(29 27 24 / 0.45);
+  --skeleton: #e9e4da;
+  --skeleton-shine: #f6f3ed;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #0b0b0c;
+  --surface: #151517;
+  --surface-2: #1d1d20;
+  --border: #2a2a2e;
+  --text: #f4f4f5;
+  --text-muted: #a1a1aa;
+
+  --accent: #f26b1d;
+  --accent-hover: #ff7d33;
+  --accent-contrast: #1a0b02;
+  --accent-gradient: linear-gradient(180deg, #ff9a52 0%, #e2541b 100%);
+  --accent-soft: #3a1e0e;
+
+  --success: #4ade80;
+  --success-soft: #12301d;
+  --danger: #f87171;
+  --danger-soft: #3a1515;
+  --warning: #fbbf24;
+  --warning-soft: #3a2c0a;
+
+  --card-1: #1f2a22;
+  --card-2: #2e2614;
+  --card-3: #23223b;
+  --card-text: #f4f4f5;
+
+  --sidebar-bg: #111113;
+  --sidebar-text: #f4f4f5;
+  --sidebar-muted: #a1a1aa;
+  --sidebar-active: #232326;
+
+  --brand: #f26b1d;
+  --brand-contrast: #ffffff;
+
+  --shadow-sm: none;
+  --shadow-md: 0 8px 28px rgb(0 0 0 / 0.5);
+  --overlay: rgb(0 0 0 / 0.6);
+  --skeleton: #1d1d20;
+  --skeleton-shine: #26262a;
+}
+
+:root {
+  --font: 'Plus Jakarta Sans Variable', 'Segoe UI', system-ui, sans-serif;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 15px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+  --text-2xl: 30px;
+
+  --titlebar-height: 40px;
+  --sidebar-width: 248px;
+}

@@ -1,0 +1,95 @@
+.devui {
+  padding: 0 var(--space-6) var(--space-8);
+  display: grid;
+  gap: var(--space-5);
+}
+.devui-header a {
+  color: var(--text);
+  font-weight: 600;
+}
+.devui-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+/* Cada painel força um tema; os tokens valem por [data-theme], então tudo dentro segue. */
+.devui-panel {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  min-width: 0;
+}
+.devui-label {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: var(--space-4);
+}
+.devui-stack,
+.devui-stack > section {
+  display: grid;
+  gap: var(--space-4);
+}
+.devui-stack {
+  gap: var(--space-8);
+}
+.wrap {
+  flex-wrap: wrap;
+}
+.devui-logos {
+  display: grid;
+  gap: var(--space-3);
+}
+.devui-logo {
+  display: grid;
+  gap: var(--space-3);
+}
+.devui-sizes {
+  align-items: end;
+  gap: var(--space-4);
+}
+.devui-onsidebar {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  justify-self: start;
+}
+.devui-swatches {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+.devui-swatch {
+  display: grid;
+  gap: var(--space-1);
+}
+.devui-swatch span {
+  height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+.devui-swatch small {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.devui-grid3 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+}
+.devui-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+.devui-form,
+.devui-skeletons {
+  display: grid;
+  gap: var(--space-4);
+}

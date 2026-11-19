@@ -19,10 +19,10 @@ import { googleSignIn } from './googleAuth'
 type ThemeSource = 'system' | 'light' | 'dark'
 
 // Cores só da moldura nativa (fundo antes do React carregar e barra de título).
-// Ficam alinhadas com --bg / --text dos tokens do renderer.
+// Ficam alinhadas com --bg / --text de src/renderer/src/styles/tokens.css.
 const FRAME_COLORS = {
-  light: { bg: '#f6f1ea', symbol: '#1f1b16' },
-  dark: { bg: '#0e0e10', symbol: '#f2f2f3' }
+  light: { bg: '#f1ede4', symbol: '#1d1b18' },
+  dark: { bg: '#0b0b0c', symbol: '#f4f4f5' }
 }
 const TITLE_BAR_HEIGHT = 40
 
@@ -150,6 +150,9 @@ const readSecrets = (): Record<string, string> => readJson<Record<string, string
 function registerIpc(): void {
   ipcMain.on('theme:is-dark', (event) => {
     event.returnValue = nativeTheme.shouldUseDarkColors
+  })
+  ipcMain.on('theme:source', (event) => {
+    event.returnValue = nativeTheme.themeSource
   })
   ipcMain.handle('theme:set-source', (_e, source: ThemeSource) => {
     if (!['system', 'light', 'dark'].includes(source)) return

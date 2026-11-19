@@ -6,6 +6,7 @@ type FileFilter = { name: string; extensions: string[] }
 const api = {
   theme: {
     isDark: (): boolean => ipcRenderer.sendSync('theme:is-dark'),
+    getSource: (): 'system' | 'light' | 'dark' => ipcRenderer.sendSync('theme:source'),
     setSource: (source: 'system' | 'light' | 'dark'): Promise<void> =>
       ipcRenderer.invoke('theme:set-source', source),
     onChange: (callback: (isDark: boolean) => void): (() => void) => {

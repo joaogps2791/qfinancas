@@ -1,75 +1,71 @@
-/* shortcut: tokens provisórios da Fase 1; a Fase 2 define o design system de verdade. */
-:root,
-[data-theme='light'] {
-  --bg: #f6f1ea;
-  --surface: #ffffff;
-  --border: #e4ddd2;
-  --text: #1f1b16;
-  --text-muted: #6b6359;
-  --accent: #3f6b4f;
-  --accent-contrast: #ffffff;
-  --success: #2f7a45;
-  --danger: #b3261e;
-  --radius: 14px;
-  color-scheme: light;
-}
-
-[data-theme='dark'] {
-  --bg: #0e0e10;
-  --surface: #18181b;
-  --border: #2a2a2f;
-  --text: #f2f2f3;
-  --text-muted: #a1a1aa;
-  --accent: #f97316;
-  --accent-contrast: #1a0d03;
-  --success: #4ade80;
-  --danger: #f87171;
-  color-scheme: dark;
-}
+/* Base global. Cores, raios e espaços vêm de styles/tokens.css. */
 
 * {
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font:
-    15px/1.45 'Segoe UI',
-    system-ui,
-    sans-serif;
+  font-family: var(--font);
+  font-size: var(--text-md);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1,
-h2 {
-  margin: 0 0 4px;
+h2,
+h3 {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 h1 {
-  font-size: 22px;
+  font-size: var(--text-xl);
 }
 h2 {
-  font-size: 17px;
-  margin-bottom: 12px;
+  font-size: var(--text-lg);
+}
+h3 {
+  font-size: var(--text-md);
 }
 p {
   margin: 0;
 }
 
+input,
+select,
+textarea,
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* Barra de título própria: área de arrastar; os botões do Windows ficam por cima à direita. */
 .titlebar {
-  height: 40px;
+  height: var(--titlebar-height);
   display: flex;
   align-items: center;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: 600;
+  gap: var(--space-2);
+  padding: 0 var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 700;
   -webkit-app-region: drag;
   user-select: none;
 }
+.titlebar :is(button, a, input) {
+  -webkit-app-region: no-drag;
+}
 
 .center {
-  min-height: calc(100vh - 40px);
+  min-height: calc(100vh - var(--titlebar-height));
   display: grid;
   place-items: center;
 }
@@ -88,59 +84,51 @@ p {
   color: var(--danger);
 }
 
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px;
-}
-
 .row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 .between {
   justify-content: space-between;
 }
 
+/* ---------- Telas provisórias da Fase 1 (redesenhadas na Fase 3) ---------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+}
+
 label {
   display: grid;
-  gap: 4px;
-  font-size: 13px;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
   color: var(--text-muted);
 }
 label.check {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   color: var(--text);
 }
 
-input,
-select,
-button {
-  font: inherit;
-  color: var(--text);
-}
-input,
-select {
+.card input,
+.card select {
   padding: 9px 11px;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg);
-}
-input:focus-visible,
-select:focus-visible,
-button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
 }
 
-button {
+.card button,
+.month button {
   padding: 9px 14px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   cursor: pointer;
 }
@@ -148,17 +136,18 @@ button:disabled {
   opacity: 0.6;
   cursor: default;
 }
-button.primary {
+.card button.primary {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-contrast);
   font-weight: 600;
 }
-button.link {
+.card button.link {
   border: 0;
   background: none;
-  padding: 4px;
-  color: var(--accent);
+  padding: var(--space-1);
+  color: var(--text);
+  text-decoration: underline;
 }
 
 .login {
@@ -170,9 +159,9 @@ button.link {
 .page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 8px 32px 32px;
+  padding: var(--space-2) var(--space-8) var(--space-8);
   display: grid;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .month strong {
@@ -184,31 +173,24 @@ button.link {
 .stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-.stats .card {
-  display: grid;
-  gap: 6px;
-}
-.stats strong {
-  font-size: 22px;
+  gap: var(--space-4);
 }
 
 .columns {
   display: grid;
   grid-template-columns: 380px 1fr;
-  gap: 20px;
+  gap: var(--space-5);
   align-items: start;
 }
 
 .form {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
 }
 .grid2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: end;
 }
 
@@ -216,11 +198,11 @@ button.link {
   display: flex;
   gap: 6px;
 }
-.pills button {
+.card .pills button {
   flex: 1;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
-.pills button.active {
+.card .pills button.active {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-contrast);
@@ -234,7 +216,7 @@ button.link {
 .entries li {
   display: grid;
   grid-template-columns: 52px 1fr auto auto;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: center;
   padding: 10px 0;
   border-top: 1px solid var(--border);

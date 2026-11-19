@@ -1,3 +1,5 @@
+import '@fontsource-variable/plus-jakarta-sans'
+import './styles/tokens.css'
 import './app.css'
 
 import { StrictMode } from 'react'
