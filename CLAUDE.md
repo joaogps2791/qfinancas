@@ -30,9 +30,16 @@ O plano completo, dividido em fases, está em `docs/PLANO.md`. **Trabalhe uma fa
 - `npm run dev`: abre o app em modo desenvolvimento
 - `npm test`: roda os testes (Vitest, arquivos `*.test.ts`)
 - `npm run typecheck` e `npm run lint`: checam tipos e estilo
-- `npm run build:win`: gera o instalador do Windows em `dist/`
+- `npm run build:win`: gera em `dist/` o instalador `QFinancas-Setup-x.y.z.exe`, o `.blockmap` e o `latest.yml` (sem publicar nada)
+- `npm run build:unpack`: gera só a pasta `dist/win-unpacked/` com o app pronto, sem instalador (bom para testar)
 - `npm run icons`: gera os ícones do Windows a partir de `resources/logo.svg`
 - `firebase deploy --only firestore:rules`: publica o `firestore.rules` (o João roda)
+
+No PowerShell deste PC o `npm` pode ser bloqueado pela política de scripts; use `npm.cmd run ...`.
+
+Empacotamento: o processo principal só carrega o `@electron-toolkit/utils` em tempo de execução, e por isso ele é a única dependência em `dependencies`. Todo o resto (React, Firebase, exceljs…) vai empacotado pelo Vite e fica em `devDependencies`, para não inchar o instalador. Uma biblioteca nova usada só na tela vai para `devDependencies`. Se for usada no processo principal, vai para `dependencies`.
+
+O site antigo sai do ar com `firebase hosting:disable` (o João roda; Auth e Firestore continuam). O `firebase.json` só tem as regras do Firestore, e a pasta `legacy/` fica só como referência.
 
 ## Onde fica cada coisa
 

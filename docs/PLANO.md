@@ -190,11 +190,20 @@ Notas da Fase 8:
 
 ## Fase 9: Instalador e despedida do site
 
-- [ ] `electron-builder` gerando o instalador NSIS (`QFinanças Setup x.y.z.exe`) com o logo novo, atalho na área de trabalho e no menu Iniciar.
-- [ ] Nome do produto "QFinanças" e `appId` `com.joao.qfinancas` (ou o que o João preferir).
-- [ ] Deixar o `electron-builder` já preparado para a atualização automática (ver Fase 9B): `publish` apontando para o GitHub e geração do `latest.yml` junto com o instalador.
+- [x] `electron-builder` gerando o instalador NSIS (`QFinanças Setup x.y.z.exe`) com o logo novo, atalho na área de trabalho e no menu Iniciar.
+- [x] Nome do produto "QFinanças" e `appId` `com.joao.qfinancas` (ou o que o João preferir).
+- [x] Deixar o `electron-builder` já preparado para a atualização automática (ver Fase 9B): `publish` apontando para o GitHub e geração do `latest.yml` junto com o instalador.
 - [ ] **Desligar o site:** o João roda `firebase hosting:disable` (explicar o comando para ele, não rodar sozinho). Auth e Firestore continuam funcionando. Remover `firebase.json` → seção `hosting`.
-- [ ] Atualizar este CLAUDE.md com os comandos finais.
+- [x] Atualizar este CLAUDE.md com os comandos finais.
+
+Notas da Fase 9:
+- **Instalador:** `npm run build:win` gera em `dist/` o `QFinancas-Setup-1.0.0.exe` (cerca de 121 MB, quase tudo é o Electron; o código do app tem 5 MB), o `.blockmap` e o `latest.yml`. É o instalador de um clique do NSIS, por usuário (sem pedir administrador), com atalho na área de trabalho e no menu Iniciar e o ícone novo. Desinstalar não apaga os dados do app em `%APPDATA%\QFinanças`.
+- **Nome do arquivo em ASCII** (`QFinancas-Setup-…`, sem "ç" nem espaço) e o executável `QFinancas.exe`: o GitHub troca esses caracteres no nome dos arquivos do release, e o `latest.yml` precisa bater com o nome publicado. Nas janelas, nos atalhos e em "Aplicativos instalados" o nome continua "QFinanças".
+- **Pronto para a 9B:** o `publish` está configurado para o GitHub `joaogps2791/qfinancas`, em rascunho, e o `app-update.yml` já vai dentro do app. O build local usa `--publish never`.
+- **Dependências:** só o `@electron-toolkit/utils` continua em `dependencies`, porque é o único que o processo principal carrega. O resto foi para `devDependencies`, porque o Vite já empacota.
+- **Testado:** o app empacotado (`dist/win-unpacked`) abre do `file://`, com fonte, tema e ícone. O Firebase aceita as chamadas dessa origem (testei com "Esqueci a senha" para um e-mail inexistente). O `.exe` traz nome, versão e autor.
+- **Falta o João:** instalar com o `.exe` (o SmartScreen pode avisar, porque não há assinatura digital: "Mais informações → Executar assim mesmo"), entrar na conta (a sessão do app instalado é separada da do modo de desenvolvimento) e testar "Iniciar com o Windows". Também falta rodar o `firebase hosting:disable`.
+- O `firebase.json` ficou só com as regras do Firestore. A seção `hosting` saiu.
 
 ## Fase 9B: Atualização automática
 

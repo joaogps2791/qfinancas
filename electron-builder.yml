@@ -1,43 +1,48 @@
-appId: com.electron.app
-productName: qfin
+# Instalador do Windows (NSIS). `npm run build:win` gera em dist/:
+#   QFinancas-Setup-x.y.z.exe, o .blockmap e o latest.yml (usado pela atualização automática).
+appId: com.joao.qfinancas
+productName: QFinanças
+copyright: Copyright © 2026 João
 directories:
   buildResources: build
+  output: dist
 files:
   - '!**/.vscode/*'
   - '!src/*'
+  - '!{docs,legacy,tests,scripts}/**'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
-  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json,tsconfig.web.tsbuildinfo}'
+  - '!{firebase.json,firestore.rules,.firebaserc,CLAUDE.md}'
+  - '!{.firebase,.claude}/**'
 asarUnpack:
   - resources/**
 win:
-  executableName: qfin
+  # Sem acento no .exe: alguns programas e o próprio Windows se atrapalham com "ç" em caminho.
+  executableName: QFinancas
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch: x64
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
+  # Nome em ASCII (sem "ç" nem espaço): o GitHub troca esses caracteres no nome dos arquivos do
+  # release, e o latest.yml precisa bater com o nome publicado para a atualização funcionar.
+  artifactName: QFinancas-Setup-${version}.${ext}
+  oneClick: true
+  perMachine: false
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
-mac:
-  entitlementsInherit: build/entitlements.mac.plist
-  extendInfo:
-    - NSCameraUsageDescription: Application requests access to the device's camera.
-    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
-    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
-    - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-  notarize: false
-dmg:
-  artifactName: ${name}-${version}.${ext}
-linux:
-  target:
-    - AppImage
-    - snap
-    - deb
-  maintainer: electronjs.org
-  category: Utility
-appImage:
-  artifactName: ${name}-${version}.${ext}
+  createStartMenuShortcut: true
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  # Desinstalar não apaga tema, chaves (safeStorage) nem o cache do Firestore em %APPDATA%.
+  deleteAppDataOnUninstall: false
 npmRebuild: false
+# Fase 9B: os releases ficam em github.com/joaogps2791/qfinancas, em rascunho até o João publicar.
 publish:
-  provider: generic
-  url: https://example.com/auto-updates
+  provider: github
+  owner: joaogps2791
+  repo: qfinancas
+  releaseType: draft
