@@ -1,11 +1,28 @@
 // Categorias, cartões padrão e categorização automática (portados do legacy/script.js).
 import type { CsvMapping } from './importer'
 import type { NotificationSettings } from './alerts'
+import type { CustomSkin, Issuer, Network } from './cardSkins'
 
 export type ThemeSource = 'system' | 'light' | 'dark'
 export type Category = { name: string; color: string; icon: string }
 /** closingDay/dueDay: dia de fechamento e de vencimento da fatura (1 a 31). */
-export type Card = { name: string; color: string; closingDay?: number; dueDay?: number }
+export type Card = {
+  /** identifica o cartão nas compras (transaction.card); não muda depois de criado */
+  name: string
+  color: string
+  closingDay?: number
+  dueDay?: number
+  /** Fase 11: aparência e informação; todos opcionais (cartões antigos usam o modelo genérico) */
+  issuer?: Issuer
+  /** id do modelo no catálogo (cardSkins.ts) ou "custom" */
+  skin?: string
+  custom?: CustomSkin
+  network?: Network
+  /** só os 4 últimos dígitos; o app nunca pede número completo, validade ou CVV */
+  last4?: string
+  nickname?: string
+  limitCents?: number
+}
 
 export type Settings = {
   schemaVersion: 2

@@ -156,6 +156,16 @@ Notas da Fase 5:
 - [x] Escolher se o arquivo é de conta (vira entrada/à vista) ou de cartão (vira lançamento de cartão numa fatura).
 - [x] Testes com arquivos OFX/CSV de exemplo (dados falsos) em `tests/fixtures/`.
 
+Notas da Fase 6:
+- **Onde fica:** a tela é `#/importar`, aberta pelo botão "Importar extrato" em Transações. A leitura dos arquivos está em `domain/importer.ts`, que é puro e testado. Os arquivos de exemplo estão em `tests/fixtures/`: OFX 1.x em Windows-1252, OFX 2.x de cartão e quatro CSV (Nubank conta, Nubank cartão, Itaú e débito/crédito em colunas separadas).
+- **CSV:** o separador (`;`, `,` ou tab) e o formato do número (`1.234,56` ou `1234.56`) são detectados sozinhos. As colunas são sugeridas pelo cabeçalho e dá para ajustar. Os perfis ficam em `settings/main.importProfiles`, guardando as colunas pela posição. O app não vem com perfis prontos: na primeira vez com cada banco, você confere e salva.
+- **Datas:** o app entende dia/mês/ano e ano-mês-dia. Arquivo em mês/dia (padrão americano) sai com a data errada.
+- **Duplicados:** mesmo valor, data com até 1 dia de diferença e descrição parecida (uma contém a outra, ou metade das palavras em comum, sem acento). No cartão também vale o valor de uma parcela de compra parcelada. A linha repetida fica desmarcada, e você pode marcar se quiser importar mesmo assim.
+- **Cartão:** cada compra entra em 1x na fatura escolhida, sugerida pela compra mais recente e pelo fechamento do cartão. Valores positivos (pagamento da fatura e estorno) ficam de fora.
+- **Conta:** crédito vira entrada, com o tipo sugerido pela descrição (Salário, Reembolso, Investimentos ou Outros). Débito vira saída à vista, com a forma de pagamento escolhida para o arquivo todo.
+- Sem regra que bata, a categoria sugerida na importação é "Outros", se ela existir.
+- Os lançamentos são gravados em lotes de 450, porque o limite do Firestore é 500 por lote.
+
 ## Fase 7: Relatórios e exportação
 
 - [x] Tela "Relatórios": resumo mensal e anual (entradas, saídas, saldo, por categoria, por cartão), comparativo mês a mês e evolução do patrimônio investido.
@@ -193,7 +203,7 @@ Notas da Fase 8:
 - [x] `electron-builder` gerando o instalador NSIS (`QFinanças Setup x.y.z.exe`) com o logo novo, atalho na área de trabalho e no menu Iniciar.
 - [x] Nome do produto "QFinanças" e `appId` `com.joao.qfinancas` (ou o que o João preferir).
 - [x] Deixar o `electron-builder` já preparado para a atualização automática (ver Fase 9B): `publish` apontando para o GitHub e geração do `latest.yml` junto com o instalador.
-- [ ] **Desligar o site:** o João roda `firebase hosting:disable` (explicar o comando para ele, não rodar sozinho). Auth e Firestore continuam funcionando. Remover `firebase.json` → seção `hosting`.
+- [x] **Desligar o site:** o João roda `firebase hosting:disable` (explicar o comando para ele, não rodar sozinho). Auth e Firestore continuam funcionando. Remover `firebase.json` → seção `hosting`.
 - [x] Atualizar este CLAUDE.md com os comandos finais.
 
 Notas da Fase 9:
@@ -264,6 +274,8 @@ Tarefas:
 - [ ] Opcional: preencher a carteira de investimentos com as posições vindas da Pluggy, comparando com o que o João lançou à mão.
 - [x] Tudo somente leitura: nada de PIX, transferências ou pagamentos.
 
+---
+
 Notas da Fase 10:
 - **Documentação da Pluggy conferida em 19/11/2026:**
   - O `GET /transactions` antigo só funciona até 31/12/2026, por isso o app usa o `GET /v2/transactions` (cursor `after`/`next`, filtro `dateFrom`).
@@ -278,7 +290,47 @@ Notas da Fase 10:
 - **Junto:** o `friendlyError` agora tira o prefixo técnico do Electron ("Error invoking remote method…") de qualquer erro que venha do processo principal.
 - **Falta o João:** criar a conta no Meu Pluggy e no Dashboard, colar as credenciais e os Item IDs em Integrações e fazer a primeira busca. Só com dados reais dá para confirmar o sinal dos valores de cada banco.
 
----
+## Fase 11: Cartões com cara de cartão físico
+
+**Objetivo:** ao cadastrar um cartão, o João escolhe o banco e o modelo (ex.: Nubank roxinho, Nubank Ultravioleta), e na aba Cartões ele aparece desenhado como o cartão de verdade, em vez de só uma aba com nome e cor.
+
+**Antes de começar:** perguntar ao João quais cartões ele tem hoje (banco + modelo). O catálogo começa por eles. Os outros bancos entram depois, com os modelos mais comuns.
+
+**Dados (no documento do cartão em `settings/main`):**
+- [x] Campos novos: `issuer` (nubank, itau, inter, c6, santander, bradesco, bb, caixa, picpay, mercadopago, xp, btg, neon, outro), `skin` (id do modelo no catálogo, ex.: `nubank-roxinho`), `network` (visa, mastercard, elo, amex, hipercard), `last4` (opcional, **só os 4 últimos dígitos**) e `nickname`.
+- [x] **Nunca** pedir nem guardar número completo, validade ou CVV. O app não precisa deles para nada.
+- [x] Os cartões que já existem continuam funcionando: sem `skin`, usam um modelo genérico na cor que já tinham.
+
+**Catálogo de modelos (`src/renderer/src/domain/cardSkins.ts`):**
+- [x] Cada modelo tem: banco, nome ("Ultravioleta"), fundo (cor sólida ou gradiente), acabamento (`fosco`, `metalico`, `holografico`, `brilho`), cor do texto e do chip, e onde fica o nome do banco.
+- [x] Os modelos são **inspirados** nos cartões reais (cor, acabamento, clima), feitos com CSS/SVG. Nada de copiar imagem de cartão do site dos bancos. Como o repositório é público, vale a regra: nome do banco escrito como texto ou com o ícone do `simple-icons` quando existir, bandeira (Visa, Mastercard...) também pelo `simple-icons`, com texto como alternativa.
+- [ ] Antes de criar os modelos de um banco, confirmar com o João quais versões existem e como são (ele pode mandar foto do próprio cartão como referência, cobrindo os números). Não inventar modelo que o banco não tem.
+- [x] Opção **"Personalizado"**: o João escolhe uma ou duas cores, o acabamento e a cor do texto. Serve para qualquer banco que não estiver no catálogo.
+
+**Componente `CardArt`:**
+- [x] Proporção de cartão de verdade (85,6 × 54 mm, ou seja, 1,586:1) e cantos arredondados na mesma proporção.
+- [x] Camadas: fundo → textura do acabamento (metálico com reflexo em gradiente, holográfico com gradiente cônico suave, fosco com um ruído bem leve) → chip (SVG) → ícone de aproximação → nome do banco → apelido → `•••• 1234` → bandeira.
+- [x] Ao passar o mouse, uma leve inclinação 3D e um reflexo passando. Respeitar `prefers-reduced-motion` (sem animação).
+- [x] Tamanhos: grande (aba Cartões), médio (seletor/cadastro) e mini (listas, Dashboard, formulário de transação).
+- [x] Contraste: a cor do texto vem do modelo, mas conferir automaticamente (luminância) e trocar para claro/escuro se ficar ilegível no modo Personalizado.
+
+**Telas:**
+- [x] **Cadastro/edição de cartão** (Configurações → Cartões e botão "+" na aba Cartões): passo 1 escolhe o banco (grade com os nomes), passo 2 escolhe o modelo (miniaturas dos cartões), passo 3 bandeira, últimos 4 dígitos (opcional), apelido, dia de fechamento e dia de vencimento. Prévia grande do cartão atualizando ao vivo.
+- [x] **Aba Cartões:** no topo, os cartões lado a lado num carrossel (setas e roda do mouse). O selecionado fica maior e em destaque, e a fatura do mês aparece embaixo, como hoje. A cor principal do cartão vira a cor de destaque do resumo da fatura (total, barra de limite, se houver).
+- [x] Mini cartão no formulário de nova transação (ao escolher "Cartão") e nos "Próximos vencimentos" do Dashboard.
+- [x] Opcional: campo `limitCents` no cartão, com a barra "usado / disponível" embaixo do cartão grande.
+
+**Testes:**
+- [x] Teste do cálculo de contraste e do fallback para cartões sem `skin`.
+- [x] Conferir todos os modelos do catálogo nos temas claro e escuro, numa seção nova da página `/dev/ui`.
+
+Notas da Fase 11:
+- **Cartões do João (19/11/2026):** Nubank Croma (Mastercard), Bradesco Elo Mais (Elo) e Caixa Gold (Visa). O catálogo (`SKINS` em `domain/cardSkins.ts`) começa vazio de propósito: esses três modelos entram quando o João mandar foto ou descrição de cada um, para não inventar modelo que o banco não tem. Até lá, eles usam o Personalizado ou o genérico na cor que já tinham.
+- **Logos:** o `simple-icons` tem Nubank, PicPay, Mercado Pago e Neon, e das bandeiras Visa, Mastercard e Amex. Os outros bancos e as bandeiras Elo e Hipercard aparecem como texto.
+- **Nome do cartão:** continua sendo o que liga as compras ao cartão (`transaction.card`), por isso não muda na edição. O apelido é o texto impresso no cartão.
+- **Cores:** o `color` do cartão passa a ser a cor principal do modelo, para o resto do app (listas, Dashboard) continuar funcionando. As luzes e sombras dos acabamentos são do material e ficam iguais nos dois temas.
+- **Limite:** o "usado" da barra é a fatura do mês mostrado. Parcelas futuras não entram, até o app ter o limite real do banco.
+- **Configurações → Cartões:** virou uma lista com o mini cartão e os botões Editar e Remover. As mudanças são salvas na hora, sem o botão "Salvar cartões".
 
 ## Ideias para depois (fora do escopo agora)
 

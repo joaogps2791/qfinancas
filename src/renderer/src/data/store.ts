@@ -23,7 +23,13 @@ import {
   writeBatch
 } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
-import { defaultSettings, PALETTE, type Settings, type ThemeSource } from '../domain/categories'
+import {
+  defaultSettings,
+  PALETTE,
+  type Card,
+  type Settings,
+  type ThemeSource
+} from '../domain/categories'
 import {
   monthKey,
   shiftMonthKey,
@@ -371,6 +377,29 @@ export async function unmarkBillPaid(bill: Bill, month: string): Promise<void> {
     deleteField()
   )
   await batch.commit()
+}
+
+// ---------- Cartões ----------
+
+/**
+ * Cria ou atualiza um cartão em settings/main.cards. O nome identifica o cartão nas compras,
+ * então na edição ele é localizado pelo nome que já tinha (`originalName`).
+ */
+export async function saveCard(card: Card, originalName?: string): Promise<void> {
+  const cards = useApp.getState().settings?.cards ?? []
+  const key = originalName ?? card.name
+  if (!originalName && cards.some((c) => c.name.toLowerCase() === card.name.toLowerCase())) {
+    throw new Error('Já existe um cartão com esse nome.')
+  }
+  const next = cards.some((c) => c.name === key)
+    ? cards.map((c) => (c.name === key ? card : c))
+    : [...cards, card]
+  await updateSettings({ cards: next })
+}
+
+export async function removeCard(name: string): Promise<void> {
+  const cards = useApp.getState().settings?.cards ?? []
+  await updateSettings({ cards: cards.filter((c) => c.name !== name) })
 }
 
 // ---------- Backup ----------

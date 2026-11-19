@@ -3,6 +3,7 @@ import { BellRing, DatabaseBackup, ImagePlus, Info, KeyRound, Plus, Trash2 } fro
 import {
   currentBackupData,
   friendlyError,
+  removeCard,
   restoreBackup,
   updateSettings,
   updateUserProfile,
@@ -28,6 +29,8 @@ import {
 } from '../components/ui'
 import { DEFAULT_NOTIFICATIONS, type NotificationSettings } from '../domain/alerts'
 import ThemePicker from '../components/ThemePicker'
+import CardArt from '../components/CardArt'
+import CardForm from '../components/CardForm'
 import { useUpdateState } from '../data/updates'
 import { IconPicker, IconBadge } from '../components/TxIcon'
 
@@ -251,40 +254,14 @@ function CategoriesSection({ saved }: { saved: Category[] }): React.JSX.Element 
 
 // ---------- Cartões ----------
 
-const parseDay = (value: string): number | undefined => {
-  const day = Number(value)
-  return Number.isInteger(day) && day >= 1 && day <= 31 ? day : undefined
-}
-
 function CardsSection({ saved }: { saved: Card[] }): React.JSX.Element {
-  const [draft, setDraft] = useState(saved)
-  const [newName, setNewName] = useState('')
+  const [editing, setEditing] = useState<Card | 'new' | null>(null)
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null)
 
-  const changed = JSON.stringify(draft) !== JSON.stringify(saved)
-  const patch = (name: string, change: Partial<Card>): void =>
-    setDraft((list) => list.map((c) => (c.name === name ? { ...c, ...change } : c)))
-
-  const add = (): void => {
-    const name = newName.trim()
-    if (!name) return
-    if (draft.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
-      return setMessage({ text: 'Já existe um cartão com esse nome.', error: true })
-    }
-    setDraft([...draft, { name, color: PALETTE[(draft.length + 3) % PALETTE.length] }])
-    setNewName('')
-    setMessage(null)
-  }
-
-  const save = (): void => {
-    // Sem dia preenchido o campo some do documento (o Firestore não aceita "undefined").
-    const cards = draft.map(({ closingDay, dueDay, ...c }) => ({
-      ...c,
-      ...(closingDay ? { closingDay } : {}),
-      ...(dueDay ? { dueDay } : {})
-    }))
-    updateSettings({ cards })
-      .then(() => setMessage({ text: 'Cartões salvos.' }))
+  const remove = (card: Card): void => {
+    if (!confirm(`Remover o cartão "${card.name}"? As compras já lançadas continuam.`)) return
+    removeCard(card.name)
+      .then(() => setMessage({ text: `Cartão "${card.name}" removido.` }))
       .catch((e) => setMessage({ text: friendlyError(e), error: true }))
   }
 
@@ -292,71 +269,57 @@ function CardsSection({ saved }: { saved: Card[] }): React.JSX.Element {
     <Panel className="settings-section">
       <div className="card-head">
         <h2>Cartões</h2>
-        <Button variant="primary" disabled={!changed} onClick={save}>
-          Salvar cartões
+        <Button variant="primary" icon={<Plus size={16} />} onClick={() => setEditing('new')}>
+          Novo cartão
         </Button>
       </div>
       <p className="muted">
         Com o dia de fechamento e o de vencimento, o app sugere a fatura de cada compra e avisa dos
         vencimentos.
       </p>
-      <ul className="edit-list">
-        {draft.map((c) => (
-          <li key={c.name} className="edit-list__row edit-list__row--card">
-            <input
-              type="color"
-              className="color-input"
-              value={c.color}
-              aria-label={`Cor do ${c.name}`}
-              onChange={(e) => patch(c.name, { color: e.target.value })}
-            />
-            <span className="edit-list__name">{c.name}</span>
-            <Input
-              label="Fecha dia"
-              type="number"
-              min={1}
-              max={31}
-              value={c.closingDay ?? ''}
-              onChange={(e) => patch(c.name, { closingDay: parseDay(e.target.value) })}
-            />
-            <Input
-              label="Vence dia"
-              type="number"
-              min={1}
-              max={31}
-              value={c.dueDay ?? ''}
-              onChange={(e) => patch(c.name, { dueDay: parseDay(e.target.value) })}
-            />
+      <ul className="card-list">
+        {saved.map((c) => (
+          <li key={c.name}>
+            <CardArt card={c} size="sm" />
+            <span className="card-list__main">
+              <strong>{c.name}</strong>
+              <small>
+                {c.closingDay ? `Fecha dia ${c.closingDay}` : 'Sem fechamento'} ·{' '}
+                {c.dueDay ? `vence dia ${c.dueDay}` : 'sem vencimento'}
+                {c.last4 && ` · final ${c.last4}`}
+              </small>
+            </span>
+            <Button size="sm" onClick={() => setEditing(c)}>
+              Editar
+            </Button>
             <Button
               variant="ghost"
               size="sm"
               aria-label={`Remover ${c.name}`}
-              onClick={() =>
-                confirm(`Remover o cartão "${c.name}"? As compras já lançadas continuam.`) &&
-                setDraft(draft.filter((x) => x.name !== c.name))
-              }
+              onClick={() => remove(c)}
               icon={<Trash2 size={16} />}
             />
           </li>
         ))}
       </ul>
-      <div className="add-row">
-        <Input
-          label="Novo cartão"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && add()}
-          maxLength={40}
-        />
-        <Button icon={<Plus size={16} />} onClick={add} disabled={!newName.trim()}>
-          Adicionar
-        </Button>
-      </div>
       {message && (
         <p className={message.error ? 'error' : 'success'} role="status">
           {message.text}
         </p>
       )}
+      <Modal
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title={editing === 'new' ? 'Novo cartão' : 'Editar cartão'}
+      >
+        {editing !== null && (
+          <CardForm
+            key={editing === 'new' ? 'new' : editing.name}
+            card={editing === 'new' ? undefined : editing}
+            onDone={() => setEditing(null)}
+          />
+        )}
+      </Modal>
     </Panel>
   )
 }

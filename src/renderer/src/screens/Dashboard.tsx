@@ -38,6 +38,7 @@ import {
 import { Badge, Button, Card, EmptyState, Pills, StatCard } from '../components/ui'
 import { IconBadge } from '../components/TxIcon'
 import { billIcon } from '../components/iconData'
+import CardArt from '../components/CardArt'
 import MonthPicker from '../components/MonthPicker'
 import Statement from '../components/Statement'
 import { contributionsInMonth } from '../domain/investments'
@@ -229,23 +230,17 @@ function Upcoming(): React.JSX.Element {
             {items.map((item) => {
               const bill = bills.find((b) => b.id === item.billId)
               const { target } = item
-              const color =
-                target.to === '/cartoes'
-                  ? (cards.find((c) => c.name === target.card)?.color ?? 'var(--accent)')
-                  : 'var(--text-muted)'
+              const card =
+                target.to === '/cartoes' ? cards.find((c) => c.name === target.card) : undefined
               return (
                 <li key={item.key}>
                   <button type="button" className="bills__row" onClick={() => open(item)}>
                     {bill ? (
                       <IconBadge icon={billIcon(bill, categories)} size={40} />
+                    ) : card ? (
+                      <CardArt card={card} size="sm" />
                     ) : (
-                      <span
-                        className="bills__icon"
-                        style={{
-                          color,
-                          background: `color-mix(in srgb, ${color} 16%, transparent)`
-                        }}
-                      >
+                      <span className="bills__icon">
                         <CreditCard size={18} />
                       </span>
                     )}

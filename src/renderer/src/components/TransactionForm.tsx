@@ -14,6 +14,7 @@ import {
 } from '../domain/finance'
 import { Button, Input, Pills, Select, Toggle } from './ui'
 import { IconPicker } from './TxIcon'
+import CardArt from './CardArt'
 
 type Kind = Transaction['kind']
 
@@ -134,6 +135,7 @@ export default function TransactionForm({
   const categories = settings?.categories.map((c) => c.name) ?? []
 
   const [form, setForm] = useState(() => initialState(editing, cards, uid))
+  const selectedCard = cards.find((c) => c.name === form.card)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -287,12 +289,15 @@ export default function TransactionForm({
       {form.kind === 'card' && (
         <>
           <div className="form-grid">
-            <Select
-              label="Cartão"
-              options={cards.map((c) => c.name)}
-              value={form.card}
-              onChange={(e) => set({ card: e.target.value })}
-            />
+            <div className="tx-form__card">
+              {selectedCard && <CardArt card={selectedCard} size="sm" />}
+              <Select
+                label="Cartão"
+                options={cards.map((c) => c.name)}
+                value={form.card}
+                onChange={(e) => set({ card: e.target.value })}
+              />
+            </div>
             <Input
               label="Vencimento da fatura"
               type="date"

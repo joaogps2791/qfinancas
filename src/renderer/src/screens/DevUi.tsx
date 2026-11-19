@@ -18,6 +18,9 @@ import {
 } from '../components/ui'
 import { Logo, LogoMark } from '../components/Logo'
 import ThemePicker from '../components/ThemePicker'
+import CardArt from '../components/CardArt'
+import { FINISHES, SKINS } from '../domain/cardSkins'
+import type { Card as CardType } from '../domain/categories'
 import './DevUi.css'
 
 // Página escondida (#/dev/ui, atalho Ctrl+Shift+U) para revisar o design system nos dois temas.
@@ -39,6 +42,42 @@ const SWATCHES = [
   'card-3',
   'sidebar-bg',
   'brand'
+]
+
+// Todos os modelos do catálogo, o genérico (cartão antigo, sem skin) e o Personalizado em cada
+// acabamento, inclusive um com cor de texto ilegível para conferir a troca automática.
+const SAMPLE_CARDS: CardType[] = [
+  ...SKINS.map((s) => ({
+    name: s.name,
+    color: s.colors[0],
+    issuer: s.issuer,
+    skin: s.id,
+    network: 'mastercard' as const,
+    last4: '1234',
+    nickname: `${s.name} (catálogo)`
+  })),
+  { name: 'Antigo', color: '#ec7000', nickname: 'Genérico (sem skin)' },
+  ...FINISHES.map((f, i) => ({
+    name: f.label,
+    color: '#2d1b69',
+    issuer: (['nubank', 'caixa', 'bradesco', 'outro'] as const)[i],
+    skin: 'custom',
+    custom: {
+      colors: (i % 2 ? ['#0b3b6f', '#1d6fb8'] : ['#2d1b69', '#7b3fe4']) as [string, string],
+      finish: f.id
+    },
+    network: (['mastercard', 'visa', 'elo', 'amex'] as const)[i],
+    last4: '4321',
+    nickname: `Personalizado ${f.label.toLowerCase()}`
+  })),
+  {
+    name: 'Contraste',
+    color: '#fcfc30',
+    skin: 'custom',
+    custom: { colors: ['#fcfc30'], finish: 'brilho', text: '#ffff66' },
+    network: 'hipercard',
+    nickname: 'Texto corrigido sozinho'
+  }
 ]
 
 function Showcase(): React.JSX.Element {
@@ -212,6 +251,23 @@ function Showcase(): React.JSX.Element {
             <Skeleton width="70%" />
             <Skeleton height={80} radius="var(--radius-md)" />
           </Card>
+        </div>
+      </section>
+
+      <section>
+        <h2>Cartões</h2>
+        <div className="devui-cards">
+          {SAMPLE_CARDS.map((c) => (
+            <figure key={c.nickname} className="devui-card">
+              <CardArt card={c} size="thumb" interactive />
+              <figcaption>{c.nickname}</figcaption>
+            </figure>
+          ))}
+        </div>
+        <div className="devui-cards">
+          <CardArt card={SAMPLE_CARDS[0]} size="lg" interactive />
+          <CardArt card={SAMPLE_CARDS[0]} size="md" />
+          <CardArt card={SAMPLE_CARDS[0]} size="sm" />
         </div>
       </section>
     </div>
