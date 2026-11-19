@@ -492,5 +492,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 export function friendlyError(error: unknown): string {
   const code = (error as { code?: string })?.code
   if (code && ERROR_MESSAGES[code]) return ERROR_MESSAGES[code]
-  return error instanceof Error ? error.message : 'Algo deu errado. Tente de novo.'
+  if (!(error instanceof Error)) return 'Algo deu errado. Tente de novo.'
+  // Erro vindo do processo principal chega como "Error invoking remote method 'x': Error: ...".
+  return error.message.replace(/^Error invoking remote method '[^']+': (\w*Error: )?/, '')
 }

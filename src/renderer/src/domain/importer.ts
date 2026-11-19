@@ -3,7 +3,13 @@
 import { classifyCategory, normalizeText } from './categories'
 import { daysUntil, splitCents, type Transaction, type TransactionInput } from './finance'
 
-export type ImportRow = { date: string; description: string; amountCents: number }
+export type ImportRow = {
+  date: string
+  description: string
+  amountCents: number
+  /** cartão: fatura desta linha (Open Finance); sem ela vale a fatura escolhida na tela */
+  invoiceDate?: string
+}
 
 /** Bancos brasileiros ainda exportam em Windows-1252; tenta UTF-8 primeiro. */
 export function decodeText(bytes: Uint8Array): string {
@@ -335,7 +341,7 @@ export function toTransaction(row: PreviewRow, target: ImportTarget): Transactio
       kind: 'card',
       category: row.category,
       card: target.card,
-      invoiceDate: target.invoiceDate,
+      invoiceDate: row.invoiceDate ?? target.invoiceDate,
       installments: 1
     }
   }

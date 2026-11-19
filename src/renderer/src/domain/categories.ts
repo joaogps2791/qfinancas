@@ -20,6 +20,8 @@ export type Settings = {
   importProfiles?: { name: string; mapping: CsvMapping }[]
   /** avisos de vencimento; sem o campo valem os padrões (DEFAULT_NOTIFICATIONS) */
   notifications?: NotificationSettings
+  /** Open Finance: id da conta na Pluggy → dia (YYYY-MM-DD) da última importação */
+  openFinanceSync?: Record<string, string>
 }
 
 export const DEFAULT_CATEGORIES = [

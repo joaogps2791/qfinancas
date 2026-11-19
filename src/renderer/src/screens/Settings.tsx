@@ -374,6 +374,11 @@ const SECRETS = [
     key: 'pluggy.clientSecret',
     label: 'Pluggy: Client Secret',
     hint: 'Open Finance pelo Meu Pluggy (Fase 10).'
+  },
+  {
+    key: 'pluggy.itemIds',
+    label: 'Pluggy: Item IDs',
+    hint: 'Um por banco, separados por vírgula ou espaço (no Dashboard da Pluggy: Demo → Connected Items).'
   }
 ]
 
@@ -455,7 +460,72 @@ function IntegrationsSection(): React.JSX.Element {
       {SECRETS.map((s) => (
         <SecretField key={s.key} secretKey={s.key} label={s.label} hint={s.hint} />
       ))}
+      <PluggyTest />
     </Panel>
+  )
+}
+
+const dateTime = new Intl.DateTimeFormat('pt-BR', {
+  dateStyle: 'short',
+  timeStyle: 'short',
+  timeZone: 'America/Sao_Paulo'
+})
+const shortStamp = (iso?: string): string => (iso ? dateTime.format(new Date(iso)) : '—')
+
+/** "Testar conexão" do Open Finance: a chave funciona e cada banco (item) responde. */
+function PluggyTest(): React.JSX.Element {
+  const [items, setItems] = useState<Awaited<ReturnType<typeof window.api.pluggy.test>> | null>(
+    null
+  )
+  const [error, setError] = useState<string | null>(null)
+  const [testing, setTesting] = useState(false)
+
+  const test = (): void => {
+    setTesting(true)
+    setError(null)
+    setItems(null)
+    window.api.pluggy
+      .test()
+      .then(setItems)
+      .catch((e) => setError(friendlyError(e)))
+      .finally(() => setTesting(false))
+  }
+
+  return (
+    <div className="pluggy-test">
+      <div className="row">
+        <Button size="sm" disabled={testing} onClick={test}>
+          {testing ? 'Testando…' : 'Testar conexão com a Pluggy'}
+        </Button>
+        <span className="muted small">
+          Só leitura: o app nunca faz Pix, transferência ou pagamento.
+        </span>
+      </div>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      {items && (
+        <ul className="pluggy-test__list">
+          {items.map((item) => (
+            <li key={item.id}>
+              <span>
+                <strong>{item.bank}</strong>
+                <small>
+                  {item.error
+                    ? item.error
+                    : `Atualizado pela Pluggy em ${shortStamp(item.lastUpdatedAt)} · consentimento até ${shortStamp(item.consentExpiresAt)}`}
+                </small>
+              </span>
+              <Badge tone={item.error || item.status !== 'UPDATED' ? 'warning' : 'success'}>
+                {item.error ? 'Erro' : item.status === 'UPDATED' ? 'OK' : item.status}
+              </Badge>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 

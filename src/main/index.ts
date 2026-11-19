@@ -20,6 +20,7 @@ import icon from '../../resources/icon.png?asset'
 import { googleSignIn } from './googleAuth'
 import { fetchQuotes, fetchRates } from './market'
 import { setupUpdater } from './updater'
+import { fetchPluggy, parseItemIds, testPluggy, type PluggyCredentials } from './pluggy'
 
 type ThemeSource = 'system' | 'light' | 'dark'
 
@@ -359,6 +360,17 @@ function registerIpc(): void {
   ipcMain.handle('open-external', (_e, url: string) => openExternalSafe(String(url)))
 
   ipcMain.handle('auth:google', () => googleSignIn(openExternalSafe))
+
+  // Open Finance (Meu Pluggy): as credenciais saem do safeStorage aqui mesmo, não da tela.
+  const pluggyCredentials = (): PluggyCredentials => ({
+    clientId: getSecret('pluggy.clientId')?.trim() ?? '',
+    clientSecret: getSecret('pluggy.clientSecret')?.trim() ?? '',
+    itemIds: parseItemIds(getSecret('pluggy.itemIds'))
+  })
+  ipcMain.handle('pluggy:test', () => testPluggy(pluggyCredentials()))
+  ipcMain.handle('pluggy:fetch', (_e, dateFrom: unknown) =>
+    fetchPluggy(pluggyCredentials(), dateFrom)
+  )
 
   ipcMain.handle('market:quotes', (_e, tickers: unknown, force: unknown) =>
     fetchQuotes(tickers, force === true, getSecret('brapi.token'), cacheStorage)

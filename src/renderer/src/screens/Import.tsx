@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FileUp, Save } from 'lucide-react'
+import { CloudDownload, FileUp, Save } from 'lucide-react'
 import { addTransactions, friendlyError, updateSettings, useApp } from '../data/store'
 import {
   formatBRL,
@@ -8,9 +8,12 @@ import {
   INCOME_TYPES,
   monthKey,
   PAYMENT_METHODS,
+  addMonths,
   suggestInvoiceDate,
   todayISO
 } from '../domain/finance'
+import { pluggyRows } from '../domain/openFinance'
+import type { PluggyData } from '../../../main/pluggy'
 import {
   applyMapping,
   buildPreview,
@@ -54,12 +57,27 @@ export default function Import(): React.JSX.Element {
   const [overrides, setOverrides] = useState<Record<number, Override>>({})
   const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null)
   const [saving, setSaving] = useState(false)
+  const [openFinance, setOpenFinance] = useState<{ data: PluggyData; accountId: string } | null>(
+    null
+  )
+  const [fetching, setFetching] = useState(false)
+
+  const card = cardChoice || cards[0]?.name || ''
+  const cardInfo = cards.find((c) => c.name === card)
 
   const parsed = useMemo(() => {
+    if (openFinance) {
+      const rows = pluggyRows(
+        openFinance.data,
+        openFinance.accountId,
+        destination === 'card' ? cardInfo : undefined
+      )
+      return { rows, skipped: 0 }
+    }
     if (!file) return { rows: [] as ImportRow[], skipped: 0 }
     if (file.ofx) return { rows: file.ofx, skipped: 0 }
     return file.cells && mapping ? applyMapping(file.cells, mapping) : { rows: [], skipped: 0 }
-  }, [file, mapping])
+  }, [file, mapping, openFinance, destination, cardInfo])
 
   const preview: PreviewRow[] = useMemo(
     () =>
@@ -74,9 +92,7 @@ export default function Import(): React.JSX.Element {
   const totalOut = chosen.filter((r) => r.amountCents < 0).reduce((s, r) => s - r.amountCents, 0)
 
   // Fatura sugerida pela compra mais recente e pelo fechamento do cartão.
-  const card = cardChoice || cards[0]?.name || ''
   const latest = parsed.rows.reduce((max, r) => (r.date > max ? r.date : max), '')
-  const cardInfo = cards.find((c) => c.name === card)
   const suggestedInvoice =
     cardInfo?.closingDay && cardInfo.dueDay && latest
       ? suggestInvoiceDate(latest, cardInfo.closingDay, cardInfo.dueDay)
@@ -91,6 +107,7 @@ export default function Import(): React.JSX.Element {
       ])
       if (!picked) return
       const text = decodeText(picked.data)
+      setOpenFinance(null)
       setOverrides({})
       setInvoiceDate('')
       if (isOfx(text)) {
@@ -109,6 +126,49 @@ export default function Import(): React.JSX.Element {
       setFile(null)
       setMessage({ text: friendlyError(error), error: true })
     }
+  }
+
+  /**
+   * Busca no Meu Pluggy desde a última importação de cada conta (3 dias de folga para lançamento
+   * atrasado; os repetidos a prévia já desmarca). Na primeira vez, os últimos 60 dias.
+   */
+  const fetchOpenFinance = async (): Promise<void> => {
+    setMessage(null)
+    setFetching(true)
+    try {
+      const synced = Object.values(settings?.openFinanceSync ?? {}).sort()[0]
+      const from = synced
+        ? new Date(Date.parse(`${synced}T12:00:00Z`) - 3 * 86_400_000).toISOString().slice(0, 10)
+        : addMonths(todayISO(), -2)
+      const data = await window.api.pluggy.fetch(from)
+      const withRows = data.accounts.find((a) =>
+        data.transactions.some((t) => t.accountId === a.id)
+      )
+      if (!data.accounts.length) {
+        throw new Error(data.errors[0] ?? 'Nenhuma conta encontrada nos itens da Pluggy.')
+      }
+      const account = withRows ?? data.accounts[0]
+      setOpenFinance({ data, accountId: account.id })
+      setFile({ name: 'Open Finance (Meu Pluggy)', ofx: [], cells: null })
+      setMapping(null)
+      setDestination(account.type === 'CREDIT' ? 'card' : 'account')
+      setOverrides({})
+      setInvoiceDate('')
+      if (data.errors.length) setMessage({ text: data.errors.join(' · '), error: true })
+    } catch (error) {
+      setMessage({ text: friendlyError(error), error: true })
+    } finally {
+      setFetching(false)
+    }
+  }
+
+  const chooseAccount = (accountId: string): void => {
+    if (!openFinance) return
+    const account = openFinance.data.accounts.find((a) => a.id === accountId)
+    setOpenFinance({ ...openFinance, accountId })
+    setDestination(account?.type === 'CREDIT' ? 'card' : 'account')
+    setOverrides({})
+    setInvoiceDate('')
   }
 
   const changeMapping = (next: CsvMapping): void => {
@@ -135,6 +195,10 @@ export default function Import(): React.JSX.Element {
           ? { destination, card, invoiceDate: invoice }
           : { destination, paymentMethod }
       await addTransactions(chosen.map((row) => toTransaction(row, target)))
+      // Próxima busca do Open Finance começa daqui (merge: as outras contas ficam como estão).
+      if (openFinance) {
+        await updateSettings({ openFinanceSync: { [openFinance.accountId]: todayISO() } })
+      }
       // Abre Transações no mês do que foi importado.
       useApp.setState({ month: monthKey(destination === 'card' ? invoice : latest || todayISO()) })
       navigate('/transacoes')
@@ -150,13 +214,17 @@ export default function Import(): React.JSX.Element {
         <div>
           <h1>Importar extrato</h1>
           <p className="muted">
-            Arquivo OFX ou CSV do banco. Nada é salvo antes de você conferir a prévia.
+            Arquivo OFX ou CSV do banco, ou direto do Open Finance. Nada é salvo antes de você
+            conferir a prévia.
           </p>
         </div>
         <div className="page-head__actions">
           <Button onClick={() => navigate('/transacoes')}>Voltar</Button>
+          <Button icon={<CloudDownload size={16} />} disabled={fetching} onClick={fetchOpenFinance}>
+            {fetching ? 'Buscando…' : 'Buscar do Open Finance'}
+          </Button>
           <Button variant="primary" icon={<FileUp size={18} />} onClick={open}>
-            {file ? 'Trocar arquivo' : 'Escolher arquivo'}
+            {file && !openFinance ? 'Trocar arquivo' : 'Escolher arquivo'}
           </Button>
         </div>
       </header>
@@ -184,7 +252,7 @@ export default function Import(): React.JSX.Element {
         <>
           <Card className="import-setup">
             <div className="import-setup__file">
-              <Badge tone="accent">{file.ofx ? 'OFX' : 'CSV'}</Badge>
+              <Badge tone="accent">{openFinance ? 'Open Finance' : file.ofx ? 'OFX' : 'CSV'}</Badge>
               <strong>{file.name}</strong>
               <span className="muted small">
                 {parsed.rows.length} {parsed.rows.length === 1 ? 'lançamento' : 'lançamentos'}
@@ -193,6 +261,17 @@ export default function Import(): React.JSX.Element {
               </span>
             </div>
             <div className="import-setup__grid">
+              {openFinance && (
+                <Select
+                  label="Conta no Open Finance"
+                  options={openFinance.data.accounts.map((a) => ({
+                    value: a.id,
+                    label: `${a.bank} · ${a.name} (${openFinance.data.transactions.filter((t) => t.accountId === a.id).length})`
+                  }))}
+                  value={openFinance.accountId}
+                  onChange={(e) => chooseAccount(e.target.value)}
+                />
+              )}
               <div className="ui-field">
                 <span className="import-label">O arquivo é de</span>
                 <Pills
@@ -222,17 +301,24 @@ export default function Import(): React.JSX.Element {
                       setInvoiceDate('')
                     }}
                   />
-                  <Input
-                    label="Vencimento da fatura"
-                    type="date"
-                    value={invoice}
-                    hint={
-                      suggestedInvoice && invoice === suggestedInvoice
-                        ? 'Sugerido pelo fechamento do cartão.'
-                        : undefined
-                    }
-                    onChange={(e) => setInvoiceDate(e.target.value)}
-                  />
+                  {openFinance && cardInfo?.closingDay && cardInfo.dueDay ? (
+                    <p className="muted small">
+                      Cada lançamento vai para a fatura do mês em que o banco o lançou, pelo
+                      fechamento do {card}.
+                    </p>
+                  ) : (
+                    <Input
+                      label="Vencimento da fatura"
+                      type="date"
+                      value={invoice}
+                      hint={
+                        suggestedInvoice && invoice === suggestedInvoice
+                          ? 'Sugerido pelo fechamento do cartão.'
+                          : undefined
+                      }
+                      onChange={(e) => setInvoiceDate(e.target.value)}
+                    />
+                  )}
                 </>
               )}
             </div>

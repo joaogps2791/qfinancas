@@ -258,11 +258,25 @@ Como funciona (confirmar na documentação atual da Pluggy antes de implementar)
 Limitações conhecidas: os dados são atualizados uma vez por dia pela própria Pluggy (não dá para forçar a sincronização pela API) e, no cartão, a data que vem é a de lançamento, não a da compra.
 
 Tarefas:
-- [ ] Em Configurações → Integrações → Open Finance: campos para Client ID, Client Secret (guardado com `safeStorage`, nunca no Firestore) e os Item IDs, com um botão "Testar conexão".
-- [ ] Todas as chamadas à API da Pluggy saem do processo principal do Electron.
-- [ ] Sincronização: buscar as transações novas desde a última sincronização e passar pelo **mesmo fluxo de prévia + detecção de duplicados da Fase 6**. Nada entra no extrato sem o João confirmar (ou, se ele ativar, entra automático só o que não for duplicado).
+- [x] Em Configurações → Integrações → Open Finance: campos para Client ID, Client Secret (guardado com `safeStorage`, nunca no Firestore) e os Item IDs, com um botão "Testar conexão".
+- [x] Todas as chamadas à API da Pluggy saem do processo principal do Electron.
+- [x] Sincronização: buscar as transações novas desde a última sincronização e passar pelo **mesmo fluxo de prévia + detecção de duplicados da Fase 6**. Nada entra no extrato sem o João confirmar (ou, se ele ativar, entra automático só o que não for duplicado).
 - [ ] Opcional: preencher a carteira de investimentos com as posições vindas da Pluggy, comparando com o que o João lançou à mão.
-- [ ] Tudo somente leitura: nada de PIX, transferências ou pagamentos.
+- [x] Tudo somente leitura: nada de PIX, transferências ou pagamentos.
+
+Notas da Fase 10:
+- **Documentação da Pluggy conferida em 19/11/2026:**
+  - O `GET /transactions` antigo só funciona até 31/12/2026, por isso o app usa o `GET /v2/transactions` (cursor `after`/`next`, filtro `dateFrom`).
+  - A API key dura 2 h; o app guarda na memória por 100 min e renova se for recusada.
+  - No Meu Pluggy não dá para listar os itens (`/v2/items` não funciona), então os Item IDs são colados à mão.
+  - Os itens se atualizam a cada 24 h e não dá para forçar. O consentimento vale 1 ano (`consentExpiresAt`).
+- **Onde fica:** as chamadas estão em `src/main/pluggy.ts` (só GET, mais o `POST /auth`). O Client ID, o Client Secret e os Item IDs ficam no `safeStorage` (`pluggy.clientId`, `pluggy.clientSecret`, `pluggy.itemIds`) e são lidos pelo processo principal; a tela nunca vê o secret. O botão "Testar conexão" mostra o status de cada banco, a última atualização feita pela Pluggy e a validade do consentimento.
+- **Sinal dos valores:** na conta, quem decide é o `type` (`DEBIT` sai, `CREDIT` entra). No cartão, positivo é gasto e negativo é pagamento ou estorno, que fica de fora. A conversão está em `domain/openFinance.ts`, com testes.
+- **Cartão:** a data da linha é a da compra (`purchaseDate`), para a detecção de duplicados bater com o que foi lançado à mão, parcelas inclusive. A fatura de cada lançamento sai da data em que o banco o lançou e do fechamento do cartão. Sem fechamento cadastrado, vale a fatura escolhida na tela.
+- **Sincronização:** "Buscar do Open Finance", em Importar extrato, traz todas as contas dos itens desde a última importação mais antiga, menos 3 dias; na primeira vez, os últimos 2 meses. As linhas passam pela mesma prévia e pela mesma detecção de duplicados da Fase 6. A data da última importação de cada conta fica em `settings/main.openFinanceSync`.
+- **Fora desta fase** (ficam para depois, se o João quiser): a importação automática sem prévia e o preenchimento da carteira de investimentos pela Pluggy (ambos opcionais no plano).
+- **Junto:** o `friendlyError` agora tira o prefixo técnico do Electron ("Error invoking remote method…") de qualquer erro que venha do processo principal.
+- **Falta o João:** criar a conta no Meu Pluggy e no Dashboard, colar as credenciais e os Item IDs em Integrações e fazer a primeira busca. Só com dados reais dá para confirmar o sinal dos valores de cada banco.
 
 ---
 

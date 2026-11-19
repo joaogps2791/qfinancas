@@ -60,9 +60,9 @@ O site antigo sai do ar com `firebase hosting:disable` (o João roda; Auth e Fir
 
 ## Onde fica cada coisa
 
-- `src/main/`: processo principal (janela, IPC, `safeStorage`, login com Google pelo navegador, cotações da brapi e taxas do Banco Central em `market.ts`, bandeja e início com o Windows, PDF dos relatórios, atualização automática em `updater.ts`)
+- `src/main/`: processo principal (janela, IPC, `safeStorage`, login com Google pelo navegador, cotações da brapi e taxas do Banco Central em `market.ts`, bandeja e início com o Windows, PDF dos relatórios, atualização automática em `updater.ts`, Open Finance (Meu Pluggy, só leitura) em `pluggy.ts`)
 - `src/preload/index.ts`: a única ponte com a tela (`window.api`)
-- `src/renderer/src/domain/`: regras de negócio puras e testadas (centavos, datas, parcelas, recorrência, categorização, orçamento e metas, leitura de OFX/CSV em `importer.ts`, relatórios em `reports.ts`, backup em `backup.ts`, vencimentos e avisos em `alerts.ts`)
+- `src/renderer/src/domain/`: regras de negócio puras e testadas (centavos, datas, parcelas, recorrência, categorização, orçamento e metas, leitura de OFX/CSV em `importer.ts`, relatórios em `reports.ts`, backup em `backup.ts`, vencimentos e avisos em `alerts.ts`, conversão do Open Finance em `openFinance.ts`)
 - `src/renderer/src/lib/exportExcel.ts`: planilha .xlsx do relatório (exceljs)
 - `src/renderer/src/data/store.ts`: Firebase + estado (Zustand); `data/alerts.ts`: agenda os avisos de vencimento; `data/portfolio.ts`: carteira com cotações e metas (`usePortfolio`, `useGoals`)
 - `src/renderer/src/screens/`: telas (Dashboard, Transações, Importar extrato, Cartões, Contas fixas, Investimentos, Metas, Relatórios, Configurações); `components/Shell.tsx` é a sidebar e os atalhos

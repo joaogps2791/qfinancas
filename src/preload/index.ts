@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { QuotesResult, Rates } from '../main/market'
 import type { UpdateState } from '../main/updater'
+import type { PluggyData, PluggyItemStatus } from '../main/pluggy'
 
 type FileFilter = { name: string; extensions: string[] }
 /** Mesmo formato de AlertTarget em src/renderer/src/domain/alerts.ts. */
@@ -27,6 +28,12 @@ const api = {
     const listener = (_e: unknown, target: AlertTarget): void => callback(target)
     ipcRenderer.on('app:navigate', listener)
     return () => ipcRenderer.removeListener('app:navigate', listener)
+  },
+  /** Open Finance pelo Meu Pluggy (só leitura; as credenciais ficam no processo principal). */
+  pluggy: {
+    test: (): Promise<PluggyItemStatus[]> => ipcRenderer.invoke('pluggy:test'),
+    /** Contas e transações de todos os itens desde `dateFrom` (YYYY-MM-DD). */
+    fetch: (dateFrom: string): Promise<PluggyData> => ipcRenderer.invoke('pluggy:fetch', dateFrom)
   },
   /** Versão instalada (ex.: "1.0.0"). */
   appVersion: (): Promise<string> => ipcRenderer.invoke('app:version'),
