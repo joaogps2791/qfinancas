@@ -16,6 +16,7 @@ import {
   CreditCard,
   PiggyBank,
   Plus,
+  Target,
   TrendingDown,
   TrendingUp,
   Wallet
@@ -40,6 +41,9 @@ import { Badge, Button, Card, EmptyState, Pills, StatCard } from '../components/
 import MonthPicker from '../components/MonthPicker'
 import Statement from '../components/Statement'
 import { contributionsInMonth } from '../domain/investments'
+import { budgetRows } from '../domain/planning'
+import { useGoals } from '../data/portfolio'
+import { BudgetList, GoalItem } from '../components/Planning'
 
 type Metric = 'expenseCents' | 'incomeCents' | 'balanceCents'
 
@@ -249,6 +253,64 @@ function Upcoming(): React.JSX.Element {
   )
 }
 
+function BudgetCard({
+  entries,
+  month
+}: {
+  entries: MonthEntry[]
+  month: string
+}): React.JSX.Element {
+  const limits = useApp((s) => s.budgets[month])
+  const rows = budgetRows(limits ?? {}, totalsByCategory(entries))
+  const over = rows.filter((r) => r.level === 'over').length
+
+  return (
+    <Card>
+      <div className="card-head">
+        <h2>Orçamento</h2>
+        <Link className="text-link" to="/metas">
+          {rows.length ? 'Ver tudo' : 'Montar'}
+        </Link>
+      </div>
+      {rows.length === 0 ? (
+        <p className="muted small">Sem limites para {formatMonth(month).toLowerCase()}.</p>
+      ) : (
+        <>
+          {over > 0 && (
+            <p className="small level-text--over budget-total">
+              {over === 1 ? '1 categoria chegou' : `${over} categorias chegaram`} ao limite.
+            </p>
+          )}
+          <BudgetList rows={rows.slice(0, 4)} />
+        </>
+      )}
+    </Card>
+  )
+}
+
+function GoalsCard(): React.JSX.Element {
+  const goals = useGoals().filter((g) => !g.progress.done)
+  return (
+    <Card>
+      <div className="card-head">
+        <h2>Metas</h2>
+        <Link className="text-link" to="/metas">
+          {goals.length ? 'Ver todas' : 'Criar'}
+        </Link>
+      </div>
+      {goals.length === 0 ? (
+        <EmptyState icon={<Target size={22} />} title="Nenhuma meta em andamento" />
+      ) : (
+        <div className="goals goals--compact">
+          {goals.slice(0, 3).map((view) => (
+            <GoalItem key={view.goal.id} view={view} />
+          ))}
+        </div>
+      )}
+    </Card>
+  )
+}
+
 export default function Dashboard(): React.JSX.Element {
   const transactions = useApp((s) => s.transactions)
   const month = useApp((s) => s.month)
@@ -318,6 +380,10 @@ export default function Dashboard(): React.JSX.Element {
         <div className="dash-grid__main">
           <CashFlow series={series} month={month} />
           <CategoryDonut entries={entries} />
+          <div className="dash-pair">
+            <BudgetCard entries={entries} month={month} />
+            <GoalsCard />
+          </div>
         </div>
         <div className="dash-grid__side">
           <Upcoming />

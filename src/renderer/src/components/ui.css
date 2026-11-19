@@ -34,7 +34,7 @@
   font-size: var(--text-xs);
 }
 /* botão só com ícone fica quadrado */
-.ui-button--sm:has(> svg:only-child) {
+.ui-button--sm.ui-button--icon {
   width: 32px;
   padding: 0;
 }

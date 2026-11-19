@@ -39,6 +39,6 @@ O plano completo, dividido em fases, está em `docs/PLANO.md`. **Trabalhe uma fa
 - `src/main/`: processo principal (janela, IPC, `safeStorage`, login com Google pelo navegador, cotações da brapi e taxas do Banco Central em `market.ts`)
 - `src/preload/index.ts`: a única ponte com a tela (`window.api`)
 - `src/renderer/src/domain/`: regras de negócio puras e testadas (centavos, datas, parcelas, recorrência, categorização)
-- `src/renderer/src/data/store.ts`: Firebase + estado (Zustand)
-- `src/renderer/src/screens/`: telas (Dashboard, Transações, Cartões, Investimentos, Configurações); `components/Shell.tsx` é a sidebar e os atalhos
+- `src/renderer/src/data/store.ts`: Firebase + estado (Zustand); `data/portfolio.ts`: carteira com cotações e metas (`usePortfolio`, `useGoals`)
+- `src/renderer/src/screens/`: telas (Dashboard, Transações, Cartões, Investimentos, Metas, Configurações); `components/Shell.tsx` é a sidebar e os atalhos
 - `legacy/`: o site antigo, só como referência

@@ -134,9 +134,17 @@ Notas da Fase 4:
 
 ## Fase 5: Metas e orçamento
 
-- [ ] **Orçamento por categoria:** limite mensal por categoria, barra de progresso (verde → amarelo em 80% → vermelho em 100%). Opção de copiar o orçamento do mês anterior.
-- [ ] **Metas de economia:** nome, valor-alvo, data-alvo, ícone/cor, quanto já foi guardado (manual ou ligado a um ativo da carteira). Mostrar quanto falta por mês para chegar na data.
-- [ ] Cards de orçamento e metas no Dashboard.
+- [x] **Orçamento por categoria:** limite mensal por categoria, barra de progresso (verde → amarelo em 80% → vermelho em 100%). Opção de copiar o orçamento do mês anterior.
+- [x] **Metas de economia:** nome, valor-alvo, data-alvo, ícone/cor, quanto já foi guardado (manual ou ligado a um ativo da carteira). Mostrar quanto falta por mês para chegar na data.
+- [x] Cards de orçamento e metas no Dashboard.
+
+Notas da Fase 5:
+- **Onde fica:** o orçamento de cada mês está em `users/{uid}/budgets/{YYYY-MM}` (`limits`: centavos por nome de categoria). As metas estão em `users/{uid}/goals/{id}` (`name`, `targetCents`, `targetDate`, `color`, `icon`, `savedCents` e, se for o caso, `link`). As regras do Firestore já cobriam essas coleções.
+- **Copiar o orçamento:** copia do mês anterior mais recente que tenha algum limite, pulando meses vazios. No editor, "Preencher com…" só preenche os campos, e nada é salvo até clicar em Salvar.
+- **Cores:** verde abaixo de 80%, amarelo a partir de 80% e vermelho a partir de 100%. Chegar exatamente no limite já conta como vermelho.
+- **Quanto guardar por mês:** é o que falta dividido pelos meses até o mês da data-alvo. O mês atual conta, e o mês da data-alvo não. Uma meta com data neste mês pede o que falta de uma vez. Com o prazo vencido, a tela mostra só quanto falta.
+- **Meta ligada a um ativo:** o valor guardado é o valor de hoje da posição (cotação da brapi ou o custo, se não houver cotação) ou a estimativa bruta da renda fixa. Se o ativo sair da carteira, a meta avisa.
+- O cálculo de carteira e cotações saiu de `Investments.tsx` para `data/portfolio.ts` (`usePortfolio`), para as metas reaproveitarem.
 
 ## Fase 6: Importar extrato
 

@@ -28,7 +28,13 @@ export function Button({
   return (
     <button
       type={type}
-      className={cx('ui-button', `ui-button--${variant}`, `ui-button--${size}`, className)}
+      className={cx(
+        'ui-button',
+        `ui-button--${variant}`,
+        `ui-button--${size}`,
+        !!icon && !children && 'ui-button--icon',
+        className
+      )}
       {...props}
     >
       {icon}

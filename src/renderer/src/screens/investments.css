@@ -151,22 +151,6 @@
   display: grid;
   gap: var(--space-3);
 }
-.progress {
-  height: 10px;
-  margin-top: var(--space-2);
-  border-radius: var(--radius-pill);
-  background: var(--surface-2);
-  overflow: hidden;
-}
-.progress span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--accent);
-}
-.progress span.is-done {
-  background: var(--success);
-}
 .targets-editor {
   display: grid;
   gap: var(--space-3);

@@ -30,6 +30,7 @@ import {
   type TransactionInput
 } from '../domain/finance'
 import type { Dividend, FixedIncome, InvestmentTransaction } from '../domain/investments'
+import type { BudgetLimits, Goal } from '../domain/planning'
 
 export type Profile = { displayName: string; photoURL: string; photoDataUrl?: string }
 
@@ -58,6 +59,9 @@ type AppState = {
   profile: Profile | null
   transactions: Transaction[]
   investments: Investments
+  /** limites por mês (YYYY-MM), de users/{uid}/budgets */
+  budgets: Record<string, BudgetLimits>
+  goals: Goal[]
   error: string | null
   /** escolha de tema em uso (vem do PC ao abrir e de settings/main.theme depois do login) */
   theme: ThemeSource
@@ -73,6 +77,8 @@ export const useApp = create<AppState>(() => ({
   profile: null,
   transactions: [],
   investments: EMPTY_INVESTMENTS,
+  budgets: {},
+  goals: [],
   error: null,
   theme: window.api.theme.getSource(),
   month: monthKey(todayISO()),
@@ -107,6 +113,8 @@ onAuthStateChanged(auth, (user) => {
     profile: null,
     transactions: [],
     investments: EMPTY_INVESTMENTS,
+    budgets: {},
+    goals: [],
     error: null
   })
   if (!user) return
@@ -153,6 +161,22 @@ onAuthStateChanged(auth, (user) => {
           })),
         onError
       )
+    ),
+    onSnapshot(
+      collection(db, ...userPath(user.uid, 'budgets')),
+      (snap) =>
+        useApp.setState({
+          budgets: Object.fromEntries(
+            snap.docs.map((d) => [d.id, (d.data().limits ?? {}) as BudgetLimits])
+          )
+        }),
+      onError
+    ),
+    onSnapshot(
+      collection(db, ...userPath(user.uid, 'goals')),
+      (snap) =>
+        useApp.setState({ goals: snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Goal) }),
+      onError
     )
   )
 })
@@ -253,6 +277,26 @@ export async function addInvestmentToStatement(
       paymentMethod: 'Transferência'
     }
   ])
+}
+
+// ---------- Orçamento e metas ----------
+
+/** Substitui os limites do mês inteiro (assim, tirar uma categoria apaga o limite dela). */
+export async function setBudget(month: string, limits: BudgetLimits): Promise<void> {
+  await setDoc(doc(db, ...userPath(requireUid(), 'budgets', month)), {
+    limits,
+    updatedAt: serverTimestamp()
+  })
+}
+
+/** Cria (sem id) ou substitui (com id) uma meta de economia. */
+export async function saveGoal(goal: WithoutId<Goal>, id?: string): Promise<void> {
+  const goals = collection(db, ...userPath(requireUid(), 'goals'))
+  await setDoc(id ? doc(goals, id) : doc(goals), { ...goal, updatedAt: serverTimestamp() })
+}
+
+export async function deleteGoal(id: string): Promise<void> {
+  await deleteDoc(doc(db, ...userPath(requireUid(), 'goals', id)))
 }
 
 // ---------- Configurações e perfil ----------

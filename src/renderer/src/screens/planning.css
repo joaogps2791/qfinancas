@@ -1,0 +1,139 @@
+/* Orçamento e metas. Só tokens de styles/tokens.css. */
+
+.planning-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.budget-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+.budget-list .row span {
+  white-space: nowrap;
+}
+.budget-list small {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+}
+
+/* Verde → amarelo (80%) → vermelho (100%) */
+.progress span.level--ok {
+  background: var(--success);
+}
+.progress span.level--warning {
+  background: var(--warning);
+}
+.progress span.level--over {
+  background: var(--danger);
+}
+.level-text--ok {
+  color: var(--text-muted);
+}
+.level-text--warning {
+  color: var(--warning);
+}
+.level-text--over {
+  color: var(--danger);
+}
+
+.budget-total {
+  margin-bottom: var(--space-4);
+}
+.budget-editor {
+  display: grid;
+  gap: var(--space-2);
+}
+.budget-editor > .ui-button {
+  justify-self: start;
+}
+.budget-editor__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px;
+  gap: var(--space-3);
+  align-items: center;
+}
+.budget-editor__row label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+.budget-editor__row .ui-input {
+  text-align: right;
+}
+
+.goals {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-3);
+}
+.goal {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-variant-numeric: tabular-nums;
+}
+.goal .progress {
+  margin-top: 0;
+}
+.goal__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+}
+.goal__title {
+  display: grid;
+  min-width: 0;
+}
+.goal__title strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.goal__title small,
+.goal > small {
+  font-size: var(--text-xs);
+}
+.goal__saved {
+  font-size: var(--text-lg);
+}
+.progress span.goal__fill {
+  background: var(--accent);
+}
+
+.goals--compact {
+  grid-template-columns: minmax(0, 1fr);
+}
+.goals--compact .goal {
+  padding: var(--space-3) 0 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+}
+
+/* Dashboard: orçamento e metas lado a lado */
+.dash-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (max-width: 1240px) {
+  .dash-pair,
+  .planning-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

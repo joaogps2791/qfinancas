@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   Bar,
   BarChart,
@@ -21,6 +21,7 @@ import {
   Wallet
 } from 'lucide-react'
 import { deleteInvestmentDoc, friendlyError, updateSettings, useApp } from '../data/store'
+import { usePortfolio, type AssetRow, type FixedRow } from '../data/portfolio'
 import {
   centsToInput,
   formatBRL,
@@ -34,11 +35,9 @@ import {
 } from '../domain/finance'
 import {
   ASSET_TYPE_LABELS,
-  computePositions,
   contributionsInMonth,
   DIVIDEND_TYPE_LABELS,
   dividendsByMonth,
-  estimateFixedIncome,
   FIXED_TYPES,
   INDEXER_LABELS,
   parseQuantity,
@@ -46,10 +45,9 @@ import {
   yieldOnCost,
   type AssetType,
   type FixedIncome,
-  type Position,
-  type RateSeries
+  type Position
 } from '../domain/investments'
-import type { Quote, QuotesResult } from '../../../main/market'
+import type { QuotesResult } from '../../../main/market'
 import {
   Badge,
   Button,
@@ -81,75 +79,7 @@ const classColor = (t: AssetType): string => `var(--chart-${CLASS_ORDER.indexOf(
 const shortDate = (iso: string): string => `${formatDayMonth(iso)}/${iso.slice(2, 4)}`
 const isSale = (type: string): boolean => type === 'venda' || type === 'resgate'
 
-// ---------- Dados de fora (cotações e taxas) ----------
-
-const EMPTY_QUOTES: QuotesResult = { quotes: {}, errors: {} }
-
-function useQuotes(tickers: string[]): {
-  result: QuotesResult
-  loading: boolean
-  refresh: () => void
-} {
-  const key = tickers.join(',')
-  const [state, setState] = useState<{ key: string; result: QuotesResult } | null>(null)
-  const [forcing, setForcing] = useState(false)
-
-  const load = (force: boolean): Promise<void> =>
-    window.api.market
-      .quotes(key.split(','), force)
-      .then((result) => setState({ key, result }))
-      .catch((e) => setState({ key, result: { quotes: {}, errors: { '': friendlyError(e) } } }))
-
-  useEffect(() => {
-    if (!key) return
-    let alive = true
-    window.api.market
-      .quotes(key.split(','))
-      .then((result) => alive && setState({ key, result }))
-      .catch(
-        (e) => alive && setState({ key, result: { quotes: {}, errors: { '': friendlyError(e) } } })
-      )
-    return () => {
-      alive = false
-    }
-  }, [key])
-
-  const refresh = (): void => {
-    setForcing(true)
-    load(true).finally(() => setForcing(false))
-  }
-
-  return {
-    result: state?.result ?? EMPTY_QUOTES,
-    loading: forcing || (!!key && state?.key !== key),
-    refresh
-  }
-}
-
-function useRates(fixed: FixedIncome[]): { rates: RateSeries; error: string | null } {
-  const from = fixed.map((f) => f.startDate).sort()[0] ?? ''
-  const [state, setState] = useState<{ rates: RateSeries; error: string | null }>({
-    rates: { cdi: [], selic: [], ipca: [] },
-    error: null
-  })
-  useEffect(() => {
-    if (!from) return
-    let alive = true
-    window.api.market
-      .rates(from)
-      .then((rates) => alive && setState({ rates, error: null }))
-      .catch((e) => alive && setState((s) => ({ ...s, error: friendlyError(e) })))
-    return () => {
-      alive = false
-    }
-  }, [from])
-  return state
-}
-
 // ---------- Tela ----------
-
-type AssetRow = Position & { quote?: Quote; valueCents: number; resultCents: number }
-type FixedRow = FixedIncome & { estimate: ReturnType<typeof estimateFixedIncome> }
 
 export default function Investments(): React.JSX.Element {
   const { investmentTransactions, fixedIncome, dividends } = useApp((s) => s.investments)
@@ -157,25 +87,7 @@ export default function Investments(): React.JSX.Element {
   const month = useApp((s) => s.month)
   const today = todayISO()
   const [dialog, setDialog] = useState<Dialog>(null)
-
-  const positions = useMemo(
-    () => computePositions(investmentTransactions),
-    [investmentTransactions]
-  )
-  const open = positions.filter((p) => p.quantity > 0)
-  const quoteTickers = open.filter((p) => p.assetType !== 'outro').map((p) => p.ticker)
-  const { result: quotes, loading, refresh } = useQuotes(quoteTickers)
-  const { rates, error: ratesError } = useRates(fixedIncome)
-
-  // Sem cotação, o ativo entra pelo custo.
-  const assets: AssetRow[] = open.map((p) => {
-    const quote = quotes.quotes[p.ticker]
-    const valueCents = quote ? Math.round(p.quantity * quote.priceCents) : p.totalCostCents
-    return { ...p, quote, valueCents, resultCents: valueCents - p.totalCostCents }
-  })
-  const fixed: FixedRow[] = fixedIncome
-    .map((f) => ({ ...f, estimate: estimateFixedIncome(f, rates, today) }))
-    .sort((a, b) => a.startDate.localeCompare(b.startDate))
+  const { open, assets, fixed, quoteTickers, quotes, loading, refresh, ratesError } = usePortfolio()
 
   const totalValue =
     assets.reduce((s, a) => s + a.valueCents, 0) +
