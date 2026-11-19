@@ -730,7 +730,8 @@ function AboutSection(): React.JSX.Element {
     <Panel className="settings-section">
       <h2>Sobre</h2>
       <p className="muted">
-        <Info size={14} aria-hidden /> QFinanças <strong>{version || '…'}</strong>
+        <Info size={14} aria-hidden /> QFinanças <strong>{version || '…'}</strong>. As versões novas
+        chegam sozinhas pelo GitHub (joaogps2791/qfinancas).
       </p>
       <Toggle
         label="Atualizar automaticamente"
