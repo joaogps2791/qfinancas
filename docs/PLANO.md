@@ -86,16 +86,23 @@ Tarefas:
 
 **Objetivo:** tudo que o site fazia, agora no app e com o visual novo.
 
-- [ ] **Sidebar:** avatar grande (foto do perfil do Firebase ou upload), "Bem-vindo de volta," + nome, menu: Dashboard, Transações, Cartões, Investimentos, Metas, Relatórios, Configurações. Item ativo destacado. Embaixo, o botão de tema e sair.
-- [ ] **Dashboard:** linha de cards no topo (Saldo do mês, Entradas, Saídas, Investido/Economia) com a variação em relação ao mês anterior. Gráfico de fluxo de caixa em barras (mês atual destacado com a cor de destaque, tooltip com o valor). Donut de gastos por categoria. Coluna lateral com "Próximos vencimentos" e "Lançamentos recentes". Seletor de mês como hoje (‹ mês ›).
-- [ ] **Extrato de lançamentos no estilo da referência 2:** cada linha com ícone, nome, categoria/forma de pagamento, data e valor (verde/vermelho), mais o menu "…" com editar e excluir. Filtros em pills (Todas, Entradas, À vista, Cartões) e busca.
+- [x] **Sidebar:** avatar grande (foto do perfil do Firebase ou upload), "Bem-vindo de volta," + nome, menu: Dashboard, Transações, Cartões, Investimentos, Metas, Relatórios, Configurações. Item ativo destacado. Embaixo, o botão de tema e sair.
+- [x] **Dashboard:** linha de cards no topo (Saldo do mês, Entradas, Saídas, Investido/Economia) com a variação em relação ao mês anterior. Gráfico de fluxo de caixa em barras (mês atual destacado com a cor de destaque, tooltip com o valor). Donut de gastos por categoria. Coluna lateral com "Próximos vencimentos" e "Lançamentos recentes". Seletor de mês como hoje (‹ mês ›).
+- [x] **Extrato de lançamentos no estilo da referência 2:** cada linha com ícone, nome, categoria/forma de pagamento, data e valor (verde/vermelho), mais o menu "…" com editar e excluir. Filtros em pills (Todas, Entradas, À vista, Cartões) e busca.
   - **Ícone da assinatura:** quando o lançamento for uma assinatura conhecida (Netflix, Spotify, Disney+, Amazon Prime, YouTube Premium, HBO Max, iCloud, Google One, ChatGPT, Claude etc.), mostrar o logo dela num quadrado arredondado com a cor da marca, como nos cards "Bill & Payment" da referência 2. Fazer com um mapa `palavra-chave → ícone do simple-icons + cor`, ligado à categorização automática que já existe.
   - O usuário pode trocar o ícone de qualquer lançamento manualmente (no seletor, entre os logos e os ícones de categoria).
   - Sem logo conhecido, usar o ícone da categoria (os SVG atuais do `categoryIconLibrary`).
-- [ ] **Transações:** o formulário unificado (entrada / à vista / cartão) com parcelas, recorrência e a "memória" do último cartão/fatura que existe hoje.
-- [ ] **Cartões:** abas por cartão, fatura do mês, total, quantidade de lançamentos. Cada cartão ganha cor, dia de fechamento e dia de vencimento (precisa disso para os avisos da Fase 8).
-- [ ] **Configurações:** perfil (nome, foto), categorias com seletor de ícone, cartões, tema, e uma seção "Integrações" (chaves do brapi e do Pluggy, guardadas com `safeStorage`).
-- [ ] Atalhos de teclado: `Ctrl+N` nova transação, `Ctrl+K` busca, `Ctrl+←/→` mês anterior/próximo.
+- [x] **Transações:** o formulário unificado (entrada / à vista / cartão) com parcelas, recorrência e a "memória" do último cartão/fatura que existe hoje.
+- [x] **Cartões:** abas por cartão, fatura do mês, total, quantidade de lançamentos. Cada cartão ganha cor, dia de fechamento e dia de vencimento (precisa disso para os avisos da Fase 8).
+- [x] **Configurações:** perfil (nome, foto), categorias com seletor de ícone, cartões, tema, e uma seção "Integrações" (chaves do brapi e do Pluggy, guardadas com `safeStorage`).
+- [x] Atalhos de teclado: `Ctrl+N` nova transação, `Ctrl+K` busca, `Ctrl+←/→` mês anterior/próximo.
+
+Notas da Fase 3:
+- Disney+, Prime Video, ChatGPT, Microsoft 365 e Globoplay não existem mais no Simple Icons. Elas aparecem com as iniciais num quadrado com a cor da marca. A lista de marcas fica em `BRANDS` (`src/renderer/src/domain/categories.ts`). A marca reconhecida também define a categoria automática (Netflix agora cai em Assinaturas, não em Lazer).
+- O card "Investido" do Dashboard soma os gastos em categorias com "invest" no nome. A Fase 4 vai lançar os aportes nessa categoria.
+- Categorias e cartões não podem ser renomeados, só criados, recoloridos e removidos. Os lançamentos guardam o nome, então renomear exigiria atualizar todos eles. Fica para depois, se fizer falta.
+- Editar um lançamento de uma série recorrente muda só aquele mês.
+- A fatura de cada compra é sugerida pelos dias de fechamento e vencimento do cartão. A "memória" do último cartão e fatura continua valendo por 15 minutos.
 
 ## Fase 4: Investimentos
 

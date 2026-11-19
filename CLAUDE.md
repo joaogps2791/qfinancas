@@ -40,5 +40,5 @@ O plano completo, dividido em fases, está em `docs/PLANO.md`. **Trabalhe uma fa
 - `src/preload/index.ts`: a única ponte com a tela (`window.api`)
 - `src/renderer/src/domain/`: regras de negócio puras e testadas (centavos, datas, parcelas, recorrência, categorização)
 - `src/renderer/src/data/store.ts`: Firebase + estado (Zustand)
-- `src/renderer/src/screens/`: telas
+- `src/renderer/src/screens/`: telas (Dashboard, Transações, Cartões, Configurações); `components/Shell.tsx` é a sidebar e os atalhos
 - `legacy/`: o site antigo, só como referência

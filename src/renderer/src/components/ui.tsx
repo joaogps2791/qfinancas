@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { ArrowDownRight, ArrowUpRight, X } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, MoreHorizontal, X } from 'lucide-react'
 import { formatBRL, formatPercent } from '../domain/finance'
 import './ui.css'
 
@@ -225,7 +225,11 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps): R
   useEffect(() => {
     const dialog = ref.current
     if (!dialog) return
-    if (open && !dialog.open) dialog.showModal()
+    if (open && !dialog.open) {
+      dialog.showModal()
+      // O <dialog> foca o primeiro botão (o X); num formulário, o certo é o primeiro campo.
+      dialog.querySelector<HTMLElement>('.ui-modal__body :is(input, select, textarea)')?.focus()
+    }
     if (!open && dialog.open) dialog.close()
   }, [open])
 
@@ -423,6 +427,74 @@ export function EmptyState({
       <h3>{title}</h3>
       {description && <p className="muted">{description}</p>}
       {action}
+    </div>
+  )
+}
+
+// ---------- Menu ("…") ----------
+
+export type MenuItem = { label: string; onSelect: () => void; icon?: ReactNode; danger?: boolean }
+
+/** Botão "…" que abre uma lista de ações. Fecha com Esc, clique fora ou ao escolher. */
+export function Menu({ label, items }: { label: string; items: MenuItem[] }): React.JSX.Element {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent): void => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    ref.current?.querySelector<HTMLButtonElement>('[role=menuitem]')?.focus()
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
+  const onKeyDown = (e: React.KeyboardEvent): void => {
+    if (e.key === 'Escape') {
+      setOpen(false)
+      ref.current?.querySelector<HTMLButtonElement>('.ui-menu__trigger')?.focus()
+      return
+    }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+    e.preventDefault()
+    const options = [...(ref.current?.querySelectorAll<HTMLButtonElement>('[role=menuitem]') ?? [])]
+    const index = options.indexOf(document.activeElement as HTMLButtonElement)
+    const step = e.key === 'ArrowDown' ? 1 : -1
+    options[(index + step + options.length) % options.length]?.focus()
+  }
+
+  return (
+    <div className="ui-menu" ref={ref} onKeyDown={onKeyDown}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="ui-menu__trigger"
+        aria-label={label}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        icon={<MoreHorizontal size={18} />}
+      />
+      {open && (
+        <div className="ui-menu__list" role="menu">
+          {items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              role="menuitem"
+              className={cx('ui-menu__item', item.danger && 'is-danger')}
+              onClick={() => {
+                setOpen(false)
+                item.onSelect()
+              }}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -171,6 +171,10 @@ function registerIpc(): void {
     const stored = readSecrets()[key]
     return stored ? safeStorage.decryptString(Buffer.from(stored, 'base64')) : null
   })
+  ipcMain.handle('secrets:has', (_e, key: unknown) => {
+    if (!validSecretKey(key)) throw new Error('Chave inválida.')
+    return key in readSecrets()
+  })
   ipcMain.handle('secrets:set', (_e, key: unknown, value: unknown) => {
     if (!validSecretKey(key) || typeof value !== 'string') throw new Error('Chave inválida.')
     if (!safeStorage.isEncryptionAvailable()) {

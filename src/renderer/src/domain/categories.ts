@@ -2,7 +2,8 @@
 
 export type ThemeSource = 'system' | 'light' | 'dark'
 export type Category = { name: string; color: string; icon: string }
-export type Card = { name: string; color: string }
+/** closingDay/dueDay: dia de fechamento e de vencimento da fatura (1 a 31). */
+export type Card = { name: string; color: string; closingDay?: number; dueDay?: number }
 
 export type Settings = {
   schemaVersion: 2
@@ -23,16 +24,17 @@ export const DEFAULT_CATEGORIES = [
 ]
 export const DEFAULT_CARDS = ['Nubank', 'Itaú', 'Santander']
 
-// shortcut: paleta do site antigo; a Fase 2 troca pelos tokens do tema novo.
-const PALETTE = [
-  '#4c1d95',
-  '#0f8b8d',
-  '#7c3aed',
-  '#b4235a',
-  '#c58a1d',
-  '#5b6470',
-  '#6d28d9',
-  '#2c7a7b'
+// Cores iniciais de categorias e cartões (o usuário troca em Configurações).
+// Tons médios, que aparecem bem no tema claro e no escuro.
+export const PALETTE = [
+  '#e07a3f',
+  '#3f8f7a',
+  '#7a6ee0',
+  '#d1497b',
+  '#c9a227',
+  '#4f86c6',
+  '#8a5cc2',
+  '#5a9a4a'
 ]
 
 export const normalizeText = (value: string): string =>
@@ -251,15 +253,199 @@ const CATEGORY_RULES: { category: string; terms: string[] }[] = [
 
 // O site procurava o termo em qualquer parte do texto ("bar" pegava "barbearia").
 // Aqui o termo precisa ser uma palavra inteira (aceitando plural com "s").
-const RULE_PATTERNS = CATEGORY_RULES.map(({ category, terms }) => ({
-  category,
-  pattern: new RegExp(
+const wordPattern = (terms: string[]): RegExp =>
+  new RegExp(
     `(^|[^a-z0-9])(${terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})s?(?=$|[^a-z0-9])`
   )
+
+const RULE_PATTERNS = CATEGORY_RULES.map(({ category, terms }) => ({
+  category,
+  pattern: wordPattern(terms)
 }))
+
+// ---------- Marcas conhecidas (assinaturas e apps) ----------
+
+/**
+ * `icon` é o slug do Simple Icons. Marcas que o Simple Icons não traz mais (Disney+, Prime,
+ * ChatGPT...) usam `monogram` com a cor da marca. Mais específicas primeiro ("uber eats" antes de "uber").
+ */
+export type Brand = {
+  id: string
+  name: string
+  terms: string[]
+  category: string
+  icon?: string
+  monogram?: string
+  color?: string
+}
+
+export const BRANDS: Brand[] = [
+  { id: 'netflix', name: 'Netflix', terms: ['netflix'], category: 'Assinaturas', icon: 'netflix' },
+  { id: 'spotify', name: 'Spotify', terms: ['spotify'], category: 'Assinaturas', icon: 'spotify' },
+  {
+    id: 'disneyplus',
+    name: 'Disney+',
+    terms: ['disney', 'disney plus', 'disneyplus'],
+    category: 'Assinaturas',
+    monogram: 'D+',
+    color: '#113ccf'
+  },
+  {
+    id: 'primevideo',
+    name: 'Prime Video',
+    terms: ['amazon prime', 'prime video', 'primevideo'],
+    category: 'Assinaturas',
+    monogram: 'P',
+    color: '#00a8e1'
+  },
+  {
+    id: 'youtubemusic',
+    name: 'YouTube Music',
+    terms: ['youtube music'],
+    category: 'Assinaturas',
+    icon: 'youtubemusic'
+  },
+  {
+    id: 'youtube',
+    name: 'YouTube Premium',
+    terms: ['youtube premium', 'youtube'],
+    category: 'Assinaturas',
+    icon: 'youtube'
+  },
+  {
+    id: 'max',
+    name: 'Max',
+    terms: ['hbo max', 'hbomax', 'hbo'],
+    category: 'Assinaturas',
+    icon: 'hbomax'
+  },
+  {
+    id: 'paramountplus',
+    name: 'Paramount+',
+    terms: ['paramount'],
+    category: 'Assinaturas',
+    icon: 'paramountplus'
+  },
+  {
+    id: 'globoplay',
+    name: 'Globoplay',
+    terms: ['globoplay'],
+    category: 'Assinaturas',
+    monogram: 'G',
+    color: '#e8202a'
+  },
+  {
+    id: 'crunchyroll',
+    name: 'Crunchyroll',
+    terms: ['crunchyroll'],
+    category: 'Assinaturas',
+    icon: 'crunchyroll'
+  },
+  {
+    id: 'appletv',
+    name: 'Apple TV+',
+    terms: ['apple tv'],
+    category: 'Assinaturas',
+    icon: 'appletv'
+  },
+  { id: 'icloud', name: 'iCloud', terms: ['icloud'], category: 'Assinaturas', icon: 'icloud' },
+  {
+    id: 'googleone',
+    name: 'Google One',
+    terms: ['google one', 'google storage'],
+    category: 'Assinaturas',
+    icon: 'google'
+  },
+  { id: 'deezer', name: 'Deezer', terms: ['deezer'], category: 'Assinaturas', icon: 'deezer' },
+  { id: 'tidal', name: 'Tidal', terms: ['tidal'], category: 'Assinaturas', icon: 'tidal' },
+  {
+    id: 'chatgpt',
+    name: 'ChatGPT',
+    terms: ['chatgpt', 'openai'],
+    category: 'Assinaturas',
+    monogram: 'AI',
+    color: '#10a37f'
+  },
+  {
+    id: 'claude',
+    name: 'Claude',
+    terms: ['claude', 'anthropic'],
+    category: 'Assinaturas',
+    icon: 'claude'
+  },
+  {
+    id: 'gemini',
+    name: 'Gemini',
+    terms: ['gemini'],
+    category: 'Assinaturas',
+    icon: 'googlegemini'
+  },
+  {
+    id: 'perplexity',
+    name: 'Perplexity',
+    terms: ['perplexity'],
+    category: 'Assinaturas',
+    icon: 'perplexity'
+  },
+  {
+    id: 'microsoft365',
+    name: 'Microsoft 365',
+    terms: ['microsoft 365', 'office 365', 'office365'],
+    category: 'Assinaturas',
+    monogram: 'M',
+    color: '#d83b01'
+  },
+  { id: 'github', name: 'GitHub', terms: ['github'], category: 'Assinaturas', icon: 'github' },
+  { id: 'notion', name: 'Notion', terms: ['notion'], category: 'Assinaturas', icon: 'notion' },
+  { id: 'dropbox', name: 'Dropbox', terms: ['dropbox'], category: 'Assinaturas', icon: 'dropbox' },
+  {
+    id: 'duolingo',
+    name: 'Duolingo',
+    terms: ['duolingo'],
+    category: 'Assinaturas',
+    icon: 'duolingo'
+  },
+  {
+    id: 'playstation',
+    name: 'PlayStation Plus',
+    terms: ['playstation', 'psn'],
+    category: 'Assinaturas',
+    icon: 'playstation'
+  },
+  { id: 'twitch', name: 'Twitch', terms: ['twitch'], category: 'Assinaturas', icon: 'twitch' },
+  {
+    id: 'discord',
+    name: 'Discord Nitro',
+    terms: ['discord'],
+    category: 'Assinaturas',
+    icon: 'discord'
+  },
+  { id: 'steam', name: 'Steam', terms: ['steam'], category: 'Lazer', icon: 'steam' },
+  { id: 'ifood', name: 'iFood', terms: ['ifood'], category: 'Alimentação', icon: 'ifood' },
+  {
+    id: 'ubereats',
+    name: 'Uber Eats',
+    terms: ['uber eats', 'ubereats'],
+    category: 'Alimentação',
+    icon: 'ubereats'
+  },
+  { id: 'uber', name: 'Uber', terms: ['uber'], category: 'Transporte', icon: 'uber' }
+]
+
+const BRAND_PATTERNS = BRANDS.map((brand) => ({ brand, pattern: wordPattern(brand.terms) }))
+
+/** A marca conhecida citada na descrição, se houver ("Netflix Premium" → Netflix). */
+export function detectBrand(description: string): Brand | null {
+  const text = normalizeText(description)
+  return BRAND_PATTERNS.find(({ pattern }) => pattern.test(text))?.brand ?? null
+}
+
+export const brandById = (id: string): Brand | undefined => BRANDS.find((b) => b.id === id)
 
 /** Sugere a categoria pela descrição; sem regra que bata, fica a primeira categoria do usuário. */
 export function classifyCategory(description: string, categories: string[]): string {
+  const brand = detectBrand(description)
+  if (brand && categories.includes(brand.category)) return brand.category
   const text = normalizeText(description)
   const match = RULE_PATTERNS.find(
     ({ category, pattern }) => categories.includes(category) && pattern.test(text)

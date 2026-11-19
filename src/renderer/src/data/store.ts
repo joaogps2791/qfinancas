@@ -22,25 +22,50 @@ import {
 } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
 import { defaultSettings, type Settings, type ThemeSource } from '../domain/categories'
-import type { Transaction, TransactionInput } from '../domain/finance'
+import {
+  monthKey,
+  shiftMonthKey,
+  todayISO,
+  type Transaction,
+  type TransactionInput
+} from '../domain/finance'
+
+export type Profile = { displayName: string; photoURL: string; photoDataUrl?: string }
 
 type AppState = {
   /** undefined enquanto o Firebase ainda não respondeu se há alguém logado */
   user: User | null | undefined
   settings: Settings | null
+  profile: Profile | null
   transactions: Transaction[]
   error: string | null
   /** escolha de tema em uso (vem do PC ao abrir e de settings/main.theme depois do login) */
   theme: ThemeSource
+  /** mês que as telas mostram (YYYY-MM), compartilhado entre Dashboard, Transações e Cartões */
+  month: string
+  /** formulário de lançamento aberto (null = fechado; com `editing` = edição) */
+  composer: { editing?: Transaction } | null
 }
 
 export const useApp = create<AppState>(() => ({
   user: undefined,
   settings: null,
+  profile: null,
   transactions: [],
   error: null,
-  theme: window.api.theme.getSource()
+  theme: window.api.theme.getSource(),
+  month: monthKey(todayISO()),
+  composer: null
 }))
+
+// ---------- Estado da interface ----------
+
+export const shiftMonth = (months: number): void =>
+  useApp.setState((s) => ({ month: shiftMonthKey(s.month, months) }))
+export const goToToday = (): void => useApp.setState({ month: monthKey(todayISO()) })
+export const openComposer = (editing?: Transaction): void =>
+  useApp.setState({ composer: { editing } })
+export const closeComposer = (): void => useApp.setState({ composer: null })
 
 const userPath = (uid: string, ...segments: string[]): [string, ...string[]] => [
   'users',
@@ -55,7 +80,7 @@ let unsubscribers: (() => void)[] = []
 onAuthStateChanged(auth, (user) => {
   unsubscribers.forEach((stop) => stop())
   unsubscribers = []
-  useApp.setState({ user, settings: null, transactions: [], error: null })
+  useApp.setState({ user, settings: null, profile: null, transactions: [], error: null })
   if (!user) return
 
   const onError = (error: Error): void => useApp.setState({ error: friendlyError(error) })
@@ -73,6 +98,11 @@ onAuthStateChanged(auth, (user) => {
         // O processo principal guarda o tema no PC para abrir já na cor certa, sem piscar.
         window.api.theme.setSource(theme)
       },
+      onError
+    ),
+    onSnapshot(
+      doc(db, ...userPath(user.uid, 'profile', 'main')),
+      (snap) => snap.exists() && useApp.setState({ profile: snap.data() as Profile }),
       onError
     ),
     onSnapshot(
@@ -122,8 +152,30 @@ export async function addTransactions(inputs: TransactionInput[]): Promise<void>
   await batch.commit()
 }
 
+/** Substitui o lançamento inteiro (assim, trocar de tipo não deixa campos do tipo antigo). */
+export async function updateTransaction(id: string, input: TransactionInput): Promise<void> {
+  await setDoc(doc(db, ...userPath(requireUid(), 'transactions', id)), {
+    ...input,
+    updatedAt: serverTimestamp()
+  })
+}
+
 export async function deleteTransaction(id: string): Promise<void> {
   await deleteDoc(doc(db, ...userPath(requireUid(), 'transactions', id)))
+}
+
+// ---------- Configurações e perfil ----------
+
+/** Grava só os campos passados (listas como `categories` vão inteiras). */
+export async function updateSettings(patch: Partial<Settings>): Promise<void> {
+  await setDoc(doc(db, ...userPath(requireUid(), 'settings', 'main')), patch, { merge: true })
+}
+
+export async function updateUserProfile(patch: Partial<Profile>): Promise<void> {
+  const user = auth.currentUser
+  if (!user) throw new Error('Você precisa entrar na sua conta.')
+  if (patch.displayName !== undefined) await updateProfile(user, { displayName: patch.displayName })
+  await setDoc(doc(db, ...userPath(user.uid, 'profile', 'main')), patch, { merge: true })
 }
 
 // ---------- Login ----------

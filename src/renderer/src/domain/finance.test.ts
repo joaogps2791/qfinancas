@@ -2,19 +2,27 @@ import { describe, expect, it } from 'vitest'
 import {
   addMonths,
   buildRecurringSeries,
+  centsToInput,
+  daysUntil,
   expandInstallments,
+  formatDayMonth,
+  formatMonth,
+  formatMonthShort,
   formatPercent,
   monthEntries,
+  monthlySeries,
   parseAmountToCents,
   percentChange,
   shiftMonthKey,
   splitCents,
+  suggestInvoiceDate,
   summarizeEntries,
   totalsByCategory,
+  upcomingInvoices,
   type CardTransaction,
   type Transaction
 } from './finance'
-import { classifyCategory, defaultSettings, DEFAULT_CATEGORIES } from './categories'
+import { classifyCategory, defaultSettings, detectBrand, DEFAULT_CATEGORIES } from './categories'
 
 describe('parseAmountToCents', () => {
   it('lê valores no formato brasileiro', () => {
@@ -204,5 +212,88 @@ describe('defaultSettings', () => {
     expect(settings.categories.map((c) => c.name)).toEqual(DEFAULT_CATEGORIES)
     expect(settings.categories[0].icon).toBe('food')
     expect(settings.cards.map((c) => c.name)).toEqual(['Nubank', 'Itaú', 'Santander'])
+  })
+})
+
+describe('suggestInvoiceDate', () => {
+  it('compra antes do fechamento cai na fatura do mês', () => {
+    expect(suggestInvoiceDate('2026-11-02', 3, 10)).toBe('2026-11-10')
+  })
+  it('compra no dia do fechamento ou depois vai para a fatura seguinte', () => {
+    expect(suggestInvoiceDate('2026-11-03', 3, 10)).toBe('2026-12-10')
+  })
+  it('vencimento antes do fechamento cai no mês seguinte ao fechamento', () => {
+    expect(suggestInvoiceDate('2026-11-20', 25, 5)).toBe('2026-12-05')
+    expect(suggestInvoiceDate('2026-11-26', 25, 5)).toBe('2027-01-05')
+  })
+  it('ajusta dias que o mês não tem', () => {
+    // fecha "dia 31" em fevereiro = dia 28
+    expect(suggestInvoiceDate('2026-02-28', 31, 10)).toBe('2026-04-10')
+    expect(suggestInvoiceDate('2026-01-10', 20, 31)).toBe('2026-01-31')
+    expect(suggestInvoiceDate('2026-01-25', 20, 31)).toBe('2026-02-28')
+  })
+})
+
+describe('upcomingInvoices', () => {
+  const tx = card({ amountCents: 30000, installments: 2, invoiceDate: '2026-12-10' })
+  const cards = [{ name: 'Nubank', dueDay: 10 }, { name: 'Itaú' }]
+  it('mostra a fatura do mês se ainda não venceu', () => {
+    expect(upcomingInvoices([tx], cards, '2026-12-05')).toEqual([
+      { card: 'Nubank', dueDate: '2026-12-10', totalCents: 15000, count: 1 }
+    ])
+  })
+  it('depois do vencimento passa para a do mês seguinte', () => {
+    expect(upcomingInvoices([tx], cards, '2026-12-15')).toEqual([
+      { card: 'Nubank', dueDate: '2027-01-10', totalCents: 15000, count: 1 }
+    ])
+  })
+  it('fatura vazia não aparece', () => {
+    expect(upcomingInvoices([tx], cards, '2027-02-11')).toEqual([])
+  })
+})
+
+describe('monthlySeries', () => {
+  it('traz os meses em ordem, terminando no mês pedido', () => {
+    const series = monthlySeries([card()], '2027-01', 3)
+    expect(series.map((p) => p.month)).toEqual(['2026-11', '2026-12', '2027-01'])
+    expect(series.map((p) => p.cardCents)).toEqual([0, 33334, 33333])
+  })
+})
+
+describe('detectBrand', () => {
+  it('reconhece assinaturas e apps pela descrição', () => {
+    expect(detectBrand('Netflix Premium')?.id).toBe('netflix')
+    expect(detectBrand('Disney+ anual')?.id).toBe('disneyplus')
+    expect(detectBrand('Uber Eats - pedido')?.id).toBe('ubereats')
+    expect(detectBrand('uber centro')?.id).toBe('uber')
+    expect(detectBrand('Mercado')).toBeNull()
+  })
+  it('a marca manda na categoria', () => {
+    expect(classifyCategory('Netflix', DEFAULT_CATEGORIES)).toBe('Assinaturas')
+    expect(classifyCategory('iFood', DEFAULT_CATEGORIES)).toBe('Alimentação')
+  })
+})
+
+describe('formatos da tela', () => {
+  it('centavos voltam para o campo de valor e são lidos de novo igual', () => {
+    for (const cents of [0, 5, 1250, 123456, 100000000]) {
+      expect(parseAmountToCents(centsToInput(cents))).toBe(cents)
+    }
+    expect(centsToInput(123456)).toBe('1234,56')
+  })
+  it('data e mês curtos', () => {
+    expect(formatDayMonth('2026-11-18')).toBe('18 nov')
+    expect(formatMonthShort('2027-01')).toBe('jan')
+  })
+  it('dias até o vencimento', () => {
+    expect(daysUntil('2026-12-10', '2026-12-05')).toBe(5)
+    expect(daysUntil('2026-11-01', '2026-10-31')).toBe(1)
+    expect(daysUntil('2026-12-01', '2026-12-05')).toBe(-4)
+  })
+})
+
+describe('formatMonth', () => {
+  it('só a primeira letra maiúscula', () => {
+    expect(formatMonth('2026-11')).toBe('Novembro de 2026')
   })
 })

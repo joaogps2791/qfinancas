@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Logo } from '../components/Logo'
+import { Button, Input } from '../components/ui'
 import {
   friendlyError,
   resetPassword,
@@ -38,7 +39,7 @@ export default function Login(): React.JSX.Element {
 
   return (
     <main className="center">
-      <form className="card login" onSubmit={submit}>
+      <form className="ui-card login" onSubmit={submit}>
         <h1>
           <Logo size={32} />
         </h1>
@@ -47,32 +48,30 @@ export default function Login(): React.JSX.Element {
         </p>
 
         {mode === 'signup' && (
-          <label>
-            Nome
-            <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
-          </label>
+          <Input
+            label="Nome"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoComplete="name"
+          />
         )}
-        <label>
-          E-mail
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            required
-          />
-        </label>
-        <label>
-          Senha
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-            minLength={6}
-            required
-          />
-        </label>
+        <Input
+          label="E-mail"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
+          required
+        />
+        <Input
+          label="Senha"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+          minLength={6}
+          required
+        />
 
         {message && (
           <p className={message.error ? 'error' : 'success'} role="status">
@@ -80,17 +79,17 @@ export default function Login(): React.JSX.Element {
           </p>
         )}
 
-        <button className="primary" type="submit" disabled={busy}>
+        <Button variant="primary" type="submit" disabled={busy}>
           {mode === 'signin' ? 'Entrar' : 'Criar conta'}
-        </button>
-        <button type="button" disabled={busy} onClick={() => run(signInWithGoogle)}>
+        </Button>
+        <Button disabled={busy} onClick={() => run(signInWithGoogle)}>
           Entrar com Google
-        </button>
+        </Button>
 
         <div className="row between">
           <button
             type="button"
-            className="link"
+            className="text-link"
             onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
           >
             {mode === 'signin' ? 'Criar uma conta' : 'Já tenho conta'}
@@ -98,7 +97,7 @@ export default function Login(): React.JSX.Element {
           {mode === 'signin' && (
             <button
               type="button"
-              className="link"
+              className="text-link"
               disabled={busy}
               onClick={() =>
                 email

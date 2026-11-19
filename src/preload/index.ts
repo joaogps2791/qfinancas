@@ -18,6 +18,7 @@ const api = {
   notify: (title: string, body: string): Promise<void> => ipcRenderer.invoke('notify', title, body),
   secrets: {
     get: (key: string): Promise<string | null> => ipcRenderer.invoke('secrets:get', key),
+    has: (key: string): Promise<boolean> => ipcRenderer.invoke('secrets:has', key),
     set: (key: string, value: string): Promise<void> =>
       ipcRenderer.invoke('secrets:set', key, value),
     remove: (key: string): Promise<void> => ipcRenderer.invoke('secrets:remove', key)
