@@ -158,3 +158,21 @@ export function resolveTxIcon(tx: Transaction, categories: Category[]): Resolved
   const key = category?.icon ?? iconKeyForCategoryName(tx.category)
   return { kind: 'category', key: CATEGORY_ICONS[key] ? key : 'outros', color }
 }
+
+/** Ícone de uma conta fixa: o mesmo de um lançamento à vista com esse nome e categoria. */
+export const billIcon = (
+  bill: { id: string; name: string; amountCents: number; category: string; paymentMethod: string },
+  categories: Category[]
+): ResolvedIcon =>
+  resolveTxIcon(
+    {
+      id: bill.id,
+      kind: 'cash',
+      description: bill.name,
+      amountCents: bill.amountCents,
+      date: '',
+      category: bill.category,
+      paymentMethod: bill.paymentMethod
+    },
+    categories
+  )

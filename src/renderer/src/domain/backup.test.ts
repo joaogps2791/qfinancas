@@ -13,7 +13,8 @@ const empty = (): Record<BackupCollection, { id: string }[]> => ({
   fixedIncome: [],
   dividends: [],
   budgets: [],
-  goals: []
+  goals: [],
+  bills: []
 })
 
 const sample = (): string => {
@@ -51,7 +52,7 @@ describe('backup', () => {
     expect(backup.settings).not.toHaveProperty('updatedAt')
     expect(backup.collections.budgets[0]).toEqual({ id: '2026-11', limits: { Alimentação: 50000 } })
     expect(backupSummary(backup)).toBe(
-      '1 lançamento, 0 registros de investimento, 0 metas, 1 mês de orçamento'
+      '1 lançamento, 0 registros de investimento, 0 metas, 1 mês de orçamento, 0 contas fixas'
     )
     expect(backupFileName(new Date('2026-11-19T12:00:00Z'))).toBe(
       'qfinancas-backup-2026-11-19.json'

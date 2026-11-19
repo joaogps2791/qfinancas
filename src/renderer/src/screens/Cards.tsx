@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { CreditCard, Plus } from 'lucide-react'
 import { openComposer, useApp } from '../data/store'
 import { formatBRL, formatDayMonth, monthEntries } from '../domain/finance'
@@ -14,7 +14,14 @@ export default function Cards(): React.JSX.Element {
   const transactions = useApp((s) => s.transactions)
   const month = useApp((s) => s.month)
   const cards = useApp((s) => s.settings?.cards ?? [])
-  const [selected, setSelected] = useState<string | null>(null)
+  // A escolha vale para a navegação em que foi feita; um clique numa notificação
+  // (nova navegação com { card }) passa na frente.
+  const location = useLocation()
+  const [pick, setPick] = useState<{ name: string; at: string } | null>(null)
+  const fromAlert = (location.state as { card?: string } | null)?.card
+  const selected =
+    pick && (pick.at === location.key || !fromAlert) ? pick.name : (fromAlert ?? null)
+  const setSelected = (name: string): void => setPick({ name, at: location.key })
   const card = cards.find((c) => c.name === selected) ?? cards[0]
 
   const entries = useMemo(

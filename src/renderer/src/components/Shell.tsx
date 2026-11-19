@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import {
   ArrowLeftRight,
+  CalendarClock,
   CreditCard,
   FileBarChart,
   LayoutDashboard,
@@ -22,6 +23,7 @@ import {
   signOut,
   useApp
 } from '../data/store'
+import { useAlertNavigation, useDueAlerts } from '../data/alerts'
 import type { ThemeSource } from '../domain/categories'
 import { Avatar, Modal } from './ui'
 import { Logo } from './Logo'
@@ -32,6 +34,7 @@ const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/transacoes', label: 'Transações', icon: ArrowLeftRight },
   { to: '/cartoes', label: 'Cartões', icon: CreditCard },
+  { to: '/contas', label: 'Contas', icon: CalendarClock },
   { to: '/investimentos', label: 'Investimentos', icon: TrendingUp },
   { to: '/metas', label: 'Metas', icon: Target },
   { to: '/relatorios', label: 'Relatórios', icon: FileBarChart },
@@ -120,6 +123,8 @@ function Sidebar(): React.JSX.Element {
 /** Moldura das telas logadas: sidebar, conteúdo e o formulário de lançamento (Ctrl+N). */
 export default function Shell(): React.JSX.Element {
   useShortcuts()
+  useDueAlerts()
+  useAlertNavigation()
   const composer = useApp((s) => s.composer)
   const error = useApp((s) => s.error)
 

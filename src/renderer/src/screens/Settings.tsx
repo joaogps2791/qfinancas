@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { DatabaseBackup, ImagePlus, KeyRound, Plus, Trash2 } from 'lucide-react'
+import { BellRing, DatabaseBackup, ImagePlus, KeyRound, Plus, Trash2 } from 'lucide-react'
 import {
   currentBackupData,
   friendlyError,
@@ -16,7 +16,17 @@ import {
   type Backup
 } from '../domain/backup'
 import { iconKeyForCategoryName, PALETTE, type Card, type Category } from '../domain/categories'
-import { Avatar, Badge, Button, Card as Panel, Input, Modal } from '../components/ui'
+import {
+  Avatar,
+  Badge,
+  Button,
+  Card as Panel,
+  Input,
+  Modal,
+  Select,
+  Toggle
+} from '../components/ui'
+import { DEFAULT_NOTIFICATIONS, type NotificationSettings } from '../domain/alerts'
 import ThemePicker from '../components/ThemePicker'
 import { IconPicker, IconBadge } from '../components/TxIcon'
 
@@ -448,6 +458,105 @@ function IntegrationsSection(): React.JSX.Element {
   )
 }
 
+// ---------- Notificações ----------
+
+const DAY_OPTIONS = [
+  { value: '0', label: 'Só no dia' },
+  { value: '1', label: '1 dia antes e no dia' },
+  { value: '2', label: '2 dias antes e no dia' },
+  { value: '3', label: '3 dias antes e no dia' },
+  { value: '5', label: '5 dias antes e no dia' },
+  { value: '7', label: '7 dias antes e no dia' }
+]
+
+function NotificationsSection({ saved }: { saved?: NotificationSettings }): React.JSX.Element {
+  const prefs = { ...DEFAULT_NOTIFICATIONS, ...saved }
+  const [background, setBackground] = useState<boolean | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    window.api.background.get().then((on) => alive && setBackground(on))
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const change = (patch: Partial<NotificationSettings>): void => {
+    setError(null)
+    updateSettings({ notifications: { ...prefs, ...patch } }).catch((e) =>
+      setError(friendlyError(e))
+    )
+  }
+  const toggleBackground = (on: boolean): void => {
+    setBackground(on)
+    window.api.background.set(on).catch((e) => {
+      setBackground(!on)
+      setError(friendlyError(e))
+    })
+  }
+
+  return (
+    <Panel className="settings-section">
+      <h2>Notificações</h2>
+      <p className="muted">
+        <BellRing size={14} aria-hidden /> Avisos do Windows antes do vencimento das faturas e das
+        contas fixas. Clicar no aviso abre a fatura ou a conta.
+      </p>
+      <Toggle
+        label="Avisos de vencimento"
+        description="Desligado, nenhum aviso é mandado."
+        checked={prefs.enabled}
+        onChange={(enabled) => change({ enabled })}
+      />
+      {prefs.enabled && (
+        <div className="settings-sub">
+          <Toggle
+            label="Faturas de cartão"
+            description="Pelo dia de vencimento de cada cartão."
+            checked={prefs.cards}
+            onChange={(cards) => change({ cards })}
+          />
+          <Toggle
+            label="Contas fixas"
+            description="As contas ativas ainda não pagas."
+            checked={prefs.bills}
+            onChange={(bills) => change({ bills })}
+          />
+          <Select
+            label="Quando avisar"
+            options={DAY_OPTIONS}
+            value={String(prefs.daysBefore)}
+            onChange={(e) => change({ daysBefore: Number(e.target.value) })}
+          />
+        </div>
+      )}
+      <Toggle
+        label="Iniciar com o Windows (minimizado na bandeja)"
+        description="Fechar a janela deixa o app na bandeja, e ele abre sozinho quando o Windows liga. Assim os avisos chegam mesmo com a janela fechada. Fica salvo só neste PC."
+        checked={!!background}
+        disabled={background === null}
+        onChange={toggleBackground}
+      />
+      <div className="row">
+        <Button
+          size="sm"
+          onClick={() =>
+            window.api.notify('Teste do QFinanças', 'É assim que os avisos de vencimento aparecem.')
+          }
+        >
+          Mandar um aviso de teste
+        </Button>
+      </div>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+    </Panel>
+  )
+}
+
 // ---------- Backup ----------
 
 const stamp = new Intl.DateTimeFormat('pt-BR', {
@@ -570,7 +679,9 @@ export default function Settings(): React.JSX.Element {
       <header className="page-head">
         <div>
           <h1>Configurações</h1>
-          <p className="muted">Perfil, aparência, categorias, cartões, integrações e backup.</p>
+          <p className="muted">
+            Perfil, aparência, categorias, cartões, notificações, integrações e backup.
+          </p>
         </div>
       </header>
       {/* Recria a seção quando o perfil chega do Firestore, para o nome aparecer. */}
@@ -596,6 +707,7 @@ export default function Settings(): React.JSX.Element {
           <p className="muted">Carregando suas configurações…</p>
         </Panel>
       )}
+      {settings && <NotificationsSection saved={settings.notifications} />}
       <IntegrationsSection />
       <BackupSection />
     </div>

@@ -1,5 +1,6 @@
 // Categorias, cartões padrão e categorização automática (portados do legacy/script.js).
 import type { CsvMapping } from './importer'
+import type { NotificationSettings } from './alerts'
 
 export type ThemeSource = 'system' | 'light' | 'dark'
 export type Category = { name: string; color: string; icon: string }
@@ -17,6 +18,8 @@ export type Settings = {
   assetInfo?: Record<string, { pvp?: number; dy?: number }>
   /** perfis de leitura de CSV por banco ("Nubank conta", "Itaú"...) */
   importProfiles?: { name: string; mapping: CsvMapping }[]
+  /** avisos de vencimento; sem o campo valem os padrões (DEFAULT_NOTIFICATIONS) */
+  notifications?: NotificationSettings
 }
 
 export const DEFAULT_CATEGORIES = [

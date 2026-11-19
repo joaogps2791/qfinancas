@@ -12,6 +12,7 @@ import Investments from './screens/Investments'
 import Goals from './screens/Goals'
 import Import from './screens/Import'
 import Reports from './screens/Reports'
+import Bills from './screens/Bills'
 import DevUi from './screens/DevUi'
 
 /** Ctrl+Shift+U abre a página escondida do design system. */
@@ -60,6 +61,7 @@ export default function App(): React.JSX.Element {
               <Route index element={<Dashboard />} />
               <Route path="transacoes" element={<Transactions />} />
               <Route path="cartoes" element={<Cards />} />
+              <Route path="contas" element={<Bills />} />
               <Route path="investimentos" element={<Investments />} />
               <Route path="metas" element={<Goals />} />
               <Route path="importar" element={<Import />} />

@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { QuotesResult, Rates } from '../main/market'
 
 type FileFilter = { name: string; extensions: string[] }
+/** Mesmo formato de AlertTarget em src/renderer/src/domain/alerts.ts. */
+type AlertTarget = { to: '/cartoes'; card: string; month: string } | { to: '/contas'; bill: string }
 
 // A única ponte entre a tela e o processo principal. Mantenha pequena.
 const api = {
@@ -16,7 +18,20 @@ const api = {
       return () => ipcRenderer.removeListener('theme:changed', listener)
     }
   },
-  notify: (title: string, body: string): Promise<void> => ipcRenderer.invoke('notify', title, body),
+  /** Notificação do Windows; o clique abre o app em `target` (veja onNavigate). */
+  notify: (title: string, body: string, target?: AlertTarget): Promise<void> =>
+    ipcRenderer.invoke('notify', title, body, target),
+  /** Pedido para abrir uma tela (clique numa notificação). Devolve a função para parar de ouvir. */
+  onNavigate: (callback: (target: AlertTarget) => void): (() => void) => {
+    const listener = (_e: unknown, target: AlertTarget): void => callback(target)
+    ipcRenderer.on('app:navigate', listener)
+    return () => ipcRenderer.removeListener('app:navigate', listener)
+  },
+  /** Bandeja + fechar para a bandeja + iniciar com o Windows (minimizado). */
+  background: {
+    get: (): Promise<boolean> => ipcRenderer.invoke('background:get'),
+    set: (on: boolean): Promise<void> => ipcRenderer.invoke('background:set', on)
+  },
   secrets: {
     get: (key: string): Promise<string | null> => ipcRenderer.invoke('secrets:get', key),
     has: (key: string): Promise<boolean> => ipcRenderer.invoke('secrets:has', key),

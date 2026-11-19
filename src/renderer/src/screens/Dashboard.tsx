@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Bar,
   BarChart,
@@ -23,7 +23,6 @@ import {
 } from 'lucide-react'
 import { openComposer, useApp } from '../data/store'
 import {
-  daysUntil,
   formatBRL,
   formatDayMonth,
   formatMonth,
@@ -33,15 +32,17 @@ import {
   percentChange,
   todayISO,
   totalsByCategory,
-  upcomingInvoices,
   type MonthEntry,
   type MonthPoint
 } from '../domain/finance'
 import { Badge, Button, Card, EmptyState, Pills, StatCard } from '../components/ui'
+import { IconBadge } from '../components/TxIcon'
+import { billIcon } from '../components/iconData'
 import MonthPicker from '../components/MonthPicker'
 import Statement from '../components/Statement'
 import { contributionsInMonth } from '../domain/investments'
 import { budgetRows } from '../domain/planning'
+import { dueItems, type DueItem } from '../domain/alerts'
 import { useGoals } from '../data/portfolio'
 import { BudgetList, GoalItem } from '../components/Planning'
 
@@ -191,59 +192,79 @@ function CategoryDonut({ entries }: { entries: MonthEntry[] }): React.JSX.Elemen
 }
 
 function Upcoming(): React.JSX.Element {
+  const navigate = useNavigate()
   const transactions = useApp((s) => s.transactions)
   const cards = useApp((s) => s.settings?.cards ?? [])
-  const today = todayISO()
-  const invoices = upcomingInvoices(transactions, cards, today)
+  const bills = useApp((s) => s.bills)
+  const categories = useApp((s) => s.settings?.categories ?? [])
+  const items = dueItems(transactions, cards, bills, todayISO()).slice(0, 6)
+  const open = (item: DueItem): void => {
+    if (item.target.to === '/cartoes') {
+      useApp.setState({ month: item.target.month })
+      navigate('/cartoes', { state: { card: item.target.card } })
+    } else navigate('/contas', { state: { bill: item.target.bill } })
+  }
 
   return (
     <Card>
       <div className="card-head">
         <h2>Próximos vencimentos</h2>
+        <Link className="text-link" to="/contas">
+          Contas fixas
+        </Link>
       </div>
-      {invoices.length === 0 ? (
+      {items.length === 0 ? (
         <EmptyState
           icon={<CalendarClock size={22} />}
           title="Nada vencendo"
           description={
-            cards.some((c) => c.dueDay)
-              ? 'Nenhuma fatura aberta para os próximos dias.'
-              : 'Cadastre o dia de vencimento dos cartões em Configurações.'
-          }
-          action={
-            cards.some((c) => c.dueDay) ? undefined : (
-              <Link className="text-link" to="/configuracoes">
-                Abrir Configurações
-              </Link>
-            )
+            cards.some((c) => c.dueDay) || bills.length
+              ? 'Nenhuma fatura ou conta em aberto para os próximos dias.'
+              : 'Cadastre o vencimento dos cartões em Configurações e as contas fixas em Contas.'
           }
         />
       ) : (
         <ul className="bills">
-          {invoices.map((inv) => {
-            const days = daysUntil(inv.dueDate, today)
-            const color = cards.find((c) => c.name === inv.card)?.color ?? 'var(--accent)'
+          {items.map((item) => {
+            const bill = bills.find((b) => b.id === item.billId)
+            const { target } = item
+            const color =
+              target.to === '/cartoes'
+                ? (cards.find((c) => c.name === target.card)?.color ?? 'var(--accent)')
+                : 'var(--text-muted)'
             return (
-              <li key={inv.card}>
-                <span
-                  className="bills__icon"
-                  style={{ color, background: `color-mix(in srgb, ${color} 16%, transparent)` }}
-                >
-                  <CreditCard size={18} />
-                </span>
-                <div>
-                  <strong>Fatura {inv.card}</strong>
-                  <small>
-                    {formatDayMonth(inv.dueDate)} · {inv.count}{' '}
-                    {inv.count === 1 ? 'lançamento' : 'lançamentos'}
-                  </small>
-                </div>
-                <div className="bills__right">
-                  <strong>{formatBRL(inv.totalCents)}</strong>
-                  <Badge tone={days <= 3 ? 'warning' : 'neutral'}>
-                    {days === 0 ? 'hoje' : days === 1 ? 'amanhã' : `em ${days} dias`}
-                  </Badge>
-                </div>
+              <li key={item.key}>
+                <button type="button" className="bills__row" onClick={() => open(item)}>
+                  {bill ? (
+                    <IconBadge icon={billIcon(bill, categories)} size={40} />
+                  ) : (
+                    <span
+                      className="bills__icon"
+                      style={{ color, background: `color-mix(in srgb, ${color} 16%, transparent)` }}
+                    >
+                      <CreditCard size={18} />
+                    </span>
+                  )}
+                  <div>
+                    <strong>{item.title}</strong>
+                    <small>
+                      {formatDayMonth(item.dueDate)} ·{' '}
+                      {item.kind === 'card' ? 'fatura' : 'conta fixa'}
+                    </small>
+                  </div>
+                  <div className="bills__right">
+                    <strong>{formatBRL(item.amountCents)}</strong>
+                    <Badge tone={item.days < 0 ? 'danger' : item.days <= 3 ? 'warning' : 'neutral'}>
+                      {item.days < 0
+                        ? 'atrasada'
+                        : item.days === 0
+                          ? 'hoje'
+                          : item.days === 1
+                            ? 'amanhã'
+                            : `em ${item.days} dias`}
+                    </Badge>
+                  </div>
+                </button>
               </li>
             )
           })}

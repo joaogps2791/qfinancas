@@ -173,12 +173,20 @@ Notas da Fase 7:
 
 ## Fase 8: Avisos de vencimento
 
-- [ ] Coleção `bills`: contas fixas (aluguel, luz, internet...) com dia de vencimento e valor, que podem gerar o lançamento quando forem marcadas como pagas.
-- [ ] Vencimento das faturas de cartão a partir do dia de vencimento de cada cartão (Fase 3).
-- [ ] Notificações do Windows (`Notification` do Electron) X dias antes e no dia (X configurável; padrão 3 dias).
-- [ ] **Ligar/desligar:** em Configurações → Notificações, uma chave geral "Avisos de vencimento" e, dentro dela, chaves separadas para faturas de cartão e contas fixas. Com a chave geral desligada, nada é agendado.
-- [ ] Opção "Iniciar com o Windows" (minimizado na bandeja), desligada por padrão, para os avisos funcionarem mesmo com o app fechado. Ícone na bandeja com "Abrir" e "Sair".
-- [ ] Clicar na notificação abre o app na fatura/conta certa.
+- [x] Coleção `bills`: contas fixas (aluguel, luz, internet...) com dia de vencimento e valor, que podem gerar o lançamento quando forem marcadas como pagas.
+- [x] Vencimento das faturas de cartão a partir do dia de vencimento de cada cartão (Fase 3).
+- [x] Notificações do Windows (`Notification` do Electron) X dias antes e no dia (X configurável; padrão 3 dias).
+- [x] **Ligar/desligar:** em Configurações → Notificações, uma chave geral "Avisos de vencimento" e, dentro dela, chaves separadas para faturas de cartão e contas fixas. Com a chave geral desligada, nada é agendado.
+- [x] Opção "Iniciar com o Windows" (minimizado na bandeja), desligada por padrão, para os avisos funcionarem mesmo com o app fechado. Ícone na bandeja com "Abrir" e "Sair".
+- [x] Clicar na notificação abre o app na fatura/conta certa.
+
+Notas da Fase 8:
+- **Contas fixas:** tela nova **Contas** (`#/contas`, na barra lateral) e coleção `users/{uid}/bills/{id}`, com nome, valor, dia de vencimento, categoria, forma de pagamento, `active` e `paid`. O `paid` guarda o mês (YYYY-MM) e o id do lançamento. "Marcar como paga" cria a saída à vista no extrato e anota o mês; "Desfazer" apaga essa saída. Em mês mais curto, o vencimento é o último dia. As contas entram no backup da Fase 7.
+- **Vencimentos:** a lógica está em `domain/alerts.ts`, que é pura e testada. Ela pega a próxima fatura de cada cartão com dia de vencimento e, de cada conta ativa, a primeira ocorrência não paga (deste mês, mesmo atrasada, ou do próximo). O card "Próximos vencimentos" do Dashboard usa a mesma lista, e clicar num item abre a fatura ou a conta.
+- **Avisos:** o app avisa uma vez quando o vencimento entra na janela de X dias e outra no dia. Conta atrasada não gera aviso, só aparece marcada como "atrasada". Os avisos já mandados ficam no localStorage do PC (chave `qf.alerts.sent`, últimos 60 dias). Num segundo PC, os avisos chegam de novo.
+- **Configurações:** a escolha fica em `settings/main.notifications` (`enabled`, `cards`, `bills`, `daysBefore`; padrão: tudo ligado, 3 dias). Com a chave geral desligada, nada é mandado.
+- **Quem agenda:** a tela, a cada mudança nos dados e a cada 15 minutos, por `data/alerts.ts`. Com "Iniciar com o Windows" ligado, fechar a janela só a esconde (a tela continua rodando) e o ícone na bandeja tem "Abrir o QFinanças" e "Sair". O Windows abre o app com `--hidden`, que começa escondido. A escolha fica só no PC (`background.json`). Em desenvolvimento o app não se registra no início do Windows, porque seria o `electron.exe` do projeto; isso só vale no app instalado (Fase 9).
+- **Clique no aviso:** abre o app em Cartões (cartão e mês da fatura) ou em Contas (com a conta destacada).
 
 ## Fase 9: Instalador e despedida do site
 

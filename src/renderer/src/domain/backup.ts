@@ -7,7 +7,8 @@ export const BACKUP_COLLECTIONS = [
   'fixedIncome',
   'dividends',
   'budgets',
-  'goals'
+  'goals',
+  'bills'
 ] as const
 export type BackupCollection = (typeof BACKUP_COLLECTIONS)[number]
 
@@ -122,6 +123,7 @@ export function backupSummary(backup: Backup): string {
     count(c.transactions.length, 'lançamento', 'lançamentos'),
     count(invest, 'registro de investimento', 'registros de investimento'),
     count(c.goals.length, 'meta', 'metas'),
-    count(c.budgets.length, 'mês de orçamento', 'meses de orçamento')
+    count(c.budgets.length, 'mês de orçamento', 'meses de orçamento'),
+    count(c.bills.length, 'conta fixa', 'contas fixas')
   ].join(', ')
 }

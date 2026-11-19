@@ -36,11 +36,11 @@ O plano completo, dividido em fases, está em `docs/PLANO.md`. **Trabalhe uma fa
 
 ## Onde fica cada coisa
 
-- `src/main/`: processo principal (janela, IPC, `safeStorage`, login com Google pelo navegador, cotações da brapi e taxas do Banco Central em `market.ts`)
+- `src/main/`: processo principal (janela, IPC, `safeStorage`, login com Google pelo navegador, cotações da brapi e taxas do Banco Central em `market.ts`, bandeja e início com o Windows, PDF dos relatórios)
 - `src/preload/index.ts`: a única ponte com a tela (`window.api`)
-- `src/renderer/src/domain/`: regras de negócio puras e testadas (centavos, datas, parcelas, recorrência, categorização, orçamento e metas, leitura de OFX/CSV em `importer.ts`, relatórios em `reports.ts`, backup em `backup.ts`)
+- `src/renderer/src/domain/`: regras de negócio puras e testadas (centavos, datas, parcelas, recorrência, categorização, orçamento e metas, leitura de OFX/CSV em `importer.ts`, relatórios em `reports.ts`, backup em `backup.ts`, vencimentos e avisos em `alerts.ts`)
 - `src/renderer/src/lib/exportExcel.ts`: planilha .xlsx do relatório (exceljs)
-- `src/renderer/src/data/store.ts`: Firebase + estado (Zustand); `data/portfolio.ts`: carteira com cotações e metas (`usePortfolio`, `useGoals`)
-- `src/renderer/src/screens/`: telas (Dashboard, Transações, Importar extrato, Cartões, Investimentos, Metas, Relatórios, Configurações); `components/Shell.tsx` é a sidebar e os atalhos
+- `src/renderer/src/data/store.ts`: Firebase + estado (Zustand); `data/alerts.ts`: agenda os avisos de vencimento; `data/portfolio.ts`: carteira com cotações e metas (`usePortfolio`, `useGoals`)
+- `src/renderer/src/screens/`: telas (Dashboard, Transações, Importar extrato, Cartões, Contas fixas, Investimentos, Metas, Relatórios, Configurações); `components/Shell.tsx` é a sidebar e os atalhos
 - `tests/fixtures/`: extratos de exemplo (dados falsos) para os testes da importação
 - `legacy/`: o site antigo, só como referência

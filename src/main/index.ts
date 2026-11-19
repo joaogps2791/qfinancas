@@ -6,8 +6,11 @@ import {
   nativeTheme,
   Notification,
   dialog,
+  Menu,
+  nativeImage,
   safeStorage,
-  screen
+  screen,
+  Tray
 } from 'electron'
 import { join } from 'path'
 import { readFileSync, writeFileSync } from 'fs'
@@ -28,6 +31,11 @@ const FRAME_COLORS = {
 const TITLE_BAR_HEIGHT = 40
 
 let mainWindow: BrowserWindow | null = null
+let tray: Tray | null = null
+// true quando o app vai sair de verdade (Sair na bandeja, desligar o PC); senão fechar só esconde.
+let quitting = false
+// Aberto pelo "Iniciar com o Windows": começa escondido na bandeja.
+const startHidden = process.argv.includes('--hidden')
 
 const userFile = (name: string): string => join(app.getPath('userData'), name)
 
@@ -106,14 +114,21 @@ function createWindow(): void {
 
   if (state.maximized) mainWindow.maximize()
 
-  mainWindow.on('ready-to-show', () => mainWindow?.show())
+  mainWindow.on('ready-to-show', () => {
+    if (!startHidden) mainWindow?.show()
+  })
 
-  mainWindow.on('close', () => {
+  mainWindow.on('close', (event) => {
     if (!mainWindow) return
     writeJson('window-state.json', {
       ...mainWindow.getNormalBounds(),
       maximized: mainWindow.isMaximized()
     })
+    // Com a bandeja ligada, fechar só esconde: a tela continua rodando para mandar os avisos.
+    if (tray && !quitting) {
+      event.preventDefault()
+      mainWindow.hide()
+    }
   })
   mainWindow.on('closed', () => (mainWindow = null))
 
@@ -133,6 +148,74 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 }
+
+function showWindow(): void {
+  if (!mainWindow) createWindow()
+  if (!mainWindow) return
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+// ---------- Bandeja e início com o Windows ----------
+
+type Background = { enabled: boolean }
+const BACKGROUND_FILE = 'background.json'
+
+function setTray(on: boolean): void {
+  if (on && !tray) {
+    tray = new Tray(nativeImage.createFromPath(icon).resize({ width: 16, height: 16 }))
+    tray.setToolTip('QFinanças')
+    tray.setContextMenu(
+      Menu.buildFromTemplate([
+        { label: 'Abrir o QFinanças', click: showWindow },
+        { type: 'separator' },
+        {
+          label: 'Sair',
+          click: () => {
+            quitting = true
+            app.quit()
+          }
+        }
+      ])
+    )
+    tray.on('click', showWindow)
+  } else if (!on && tray) {
+    tray.destroy()
+    tray = null
+  }
+}
+
+/** Liga ou desliga junto: ícone na bandeja, fechar para a bandeja e abrir com o Windows. */
+function setBackground(on: boolean): void {
+  writeJson(BACKGROUND_FILE, { enabled: on } satisfies Background)
+  setTray(on)
+  // Em desenvolvimento o "app" é o electron.exe do projeto; só o instalado entra no início do Windows.
+  if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: on, args: ['--hidden'] })
+}
+
+// ---------- Avisos ----------
+
+type AlertTarget = { to: '/cartoes'; card: string; month: string } | { to: '/contas'; bill: string }
+
+const shortText = (v: unknown): v is string => typeof v === 'string' && v.length <= 128
+function validTarget(t: unknown): AlertTarget | null {
+  if (typeof t !== 'object' || t === null) return null
+  const o = t as Record<string, unknown>
+  if (
+    o.to === '/cartoes' &&
+    shortText(o.card) &&
+    shortText(o.month) &&
+    /^\d{4}-\d{2}$/.test(o.month)
+  ) {
+    return { to: '/cartoes', card: o.card, month: o.month }
+  }
+  if (o.to === '/contas' && shortText(o.bill)) return { to: '/contas', bill: o.bill }
+  return null
+}
+
+// Guarda as notificações abertas: sem referência, o coletor de lixo some com o clique.
+const openNotifications = new Set<Notification>()
 
 function openExternalSafe(url: string): void {
   if (/^(https?:|mailto:)/i.test(url)) shell.openExternal(url)
@@ -172,11 +255,29 @@ function registerIpc(): void {
     writeJson('theme.json', { source })
   })
 
-  ipcMain.handle('notify', (_e, title: string, body: string) => {
-    if (Notification.isSupported()) {
-      new Notification({ title: String(title), body: String(body), icon }).show()
-    }
+  ipcMain.handle('notify', (_e, title: unknown, body: unknown, target: unknown) => {
+    if (!Notification.isSupported()) return
+    const notification = new Notification({
+      title: String(title).slice(0, 200),
+      body: String(body).slice(0, 500),
+      icon
+    })
+    const to = validTarget(target)
+    openNotifications.add(notification)
+    notification.on('click', () => {
+      showWindow()
+      if (to) mainWindow?.webContents.send('app:navigate', to)
+      openNotifications.delete(notification)
+    })
+    notification.on('close', () => openNotifications.delete(notification))
+    notification.show()
   })
+
+  ipcMain.handle(
+    'background:get',
+    () => readJson<Background>(BACKGROUND_FILE, { enabled: false }).enabled
+  )
+  ipcMain.handle('background:set', (_e, on: unknown) => setBackground(on === true))
 
   ipcMain.handle('secrets:get', (_e, key: unknown) => {
     if (!validSecretKey(key)) throw new Error('Chave inválida.')
@@ -270,10 +371,9 @@ function registerIpc(): void {
 
 if (!app.requestSingleInstanceLock()) app.quit()
 
-app.on('second-instance', () => {
-  if (!mainWindow) return
-  if (mainWindow.isMinimized()) mainWindow.restore()
-  mainWindow.focus()
+app.on('second-instance', showWindow)
+app.on('before-quit', () => {
+  quitting = true
 })
 
 app.whenReady().then(() => {
@@ -286,7 +386,11 @@ app.whenReady().then(() => {
   nativeTheme.on('updated', applyFrameTheme)
 
   registerIpc()
+  setTray(readJson<Background>(BACKGROUND_FILE, { enabled: false }).enabled)
   createWindow()
 })
 
-app.on('window-all-closed', () => app.quit())
+// Com a bandeja ligada a janela só se esconde, então isto só acontece com ela desligada.
+app.on('window-all-closed', () => {
+  if (!tray) app.quit()
+})

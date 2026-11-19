@@ -13,7 +13,9 @@ import {
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
+  FieldPath,
   getDoc,
   onSnapshot,
   serverTimestamp,
@@ -31,6 +33,7 @@ import {
 } from '../domain/finance'
 import type { Dividend, FixedIncome, InvestmentTransaction } from '../domain/investments'
 import type { BudgetLimits, Goal } from '../domain/planning'
+import { billDueDate, type Bill } from '../domain/alerts'
 import { BACKUP_COLLECTIONS, type Backup, type BackupCollection } from '../domain/backup'
 
 export type Profile = { displayName: string; photoURL: string; photoDataUrl?: string }
@@ -63,6 +66,7 @@ type AppState = {
   /** limites por mês (YYYY-MM), de users/{uid}/budgets */
   budgets: Record<string, BudgetLimits>
   goals: Goal[]
+  bills: Bill[]
   error: string | null
   /** escolha de tema em uso (vem do PC ao abrir e de settings/main.theme depois do login) */
   theme: ThemeSource
@@ -80,6 +84,7 @@ export const useApp = create<AppState>(() => ({
   investments: EMPTY_INVESTMENTS,
   budgets: {},
   goals: [],
+  bills: [],
   error: null,
   theme: window.api.theme.getSource(),
   month: monthKey(todayISO()),
@@ -116,6 +121,7 @@ onAuthStateChanged(auth, (user) => {
     investments: EMPTY_INVESTMENTS,
     budgets: {},
     goals: [],
+    bills: [],
     error: null
   })
   if (!user) return
@@ -177,6 +183,12 @@ onAuthStateChanged(auth, (user) => {
       collection(db, ...userPath(user.uid, 'goals')),
       (snap) =>
         useApp.setState({ goals: snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Goal) }),
+      onError
+    ),
+    onSnapshot(
+      collection(db, ...userPath(user.uid, 'bills')),
+      (snap) =>
+        useApp.setState({ bills: snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Bill) }),
       onError
     )
   )
@@ -303,6 +315,64 @@ export async function deleteGoal(id: string): Promise<void> {
   await deleteDoc(doc(db, ...userPath(requireUid(), 'goals', id)))
 }
 
+// ---------- Contas fixas ----------
+
+/** Cria (sem id) ou atualiza (com id) uma conta fixa, mantendo os meses já pagos. */
+export async function saveBill(bill: Omit<Bill, 'id' | 'paid'>, id?: string): Promise<void> {
+  const bills = collection(db, ...userPath(requireUid(), 'bills'))
+  await setDoc(
+    id ? doc(bills, id) : doc(bills),
+    { ...bill, updatedAt: serverTimestamp() },
+    {
+      merge: true
+    }
+  )
+}
+
+export async function deleteBill(id: string): Promise<void> {
+  await deleteDoc(doc(db, ...userPath(requireUid(), 'bills', id)))
+}
+
+/**
+ * Marca o mês como pago: cria a saída à vista no extrato e guarda o id dela na conta.
+ * A data é hoje quando o mês é o atual; pagando adiantado, é o dia do vencimento.
+ */
+export async function markBillPaid(bill: Bill, month: string): Promise<void> {
+  const uid = requireUid()
+  const today = todayISO()
+  const tx = doc(collection(db, ...userPath(uid, 'transactions')))
+  const batch = writeBatch(db)
+  batch.set(tx, {
+    kind: 'cash',
+    description: bill.name,
+    amountCents: bill.amountCents,
+    date: monthKey(today) === month ? today : billDueDate(bill, month),
+    category: bill.category,
+    paymentMethod: bill.paymentMethod,
+    createdAt: serverTimestamp()
+  })
+  batch.set(
+    doc(db, ...userPath(uid, 'bills', bill.id)),
+    { paid: { [month]: tx.id } },
+    { merge: true }
+  )
+  await batch.commit()
+}
+
+/** Desfaz o "paga": apaga a saída criada e tira o mês da lista de pagos. */
+export async function unmarkBillPaid(bill: Bill, month: string): Promise<void> {
+  const uid = requireUid()
+  const batch = writeBatch(db)
+  const txId = bill.paid?.[month]
+  if (txId) batch.delete(doc(db, ...userPath(uid, 'transactions', txId)))
+  batch.update(
+    doc(db, ...userPath(uid, 'bills', bill.id)),
+    new FieldPath('paid', month),
+    deleteField()
+  )
+  await batch.commit()
+}
+
 // ---------- Backup ----------
 
 /** O que está no app agora, no formato que `makeBackup` espera. */
@@ -319,7 +389,8 @@ export function currentBackupData(): {
       transactions: s.transactions,
       ...s.investments,
       budgets: Object.entries(s.budgets).map(([id, limits]) => ({ id, limits })),
-      goals: s.goals
+      goals: s.goals,
+      bills: s.bills
     }
   }
 }
