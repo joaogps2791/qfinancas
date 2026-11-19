@@ -26,7 +26,6 @@ import {
 import { useAlertNavigation, useDueAlerts } from '../data/alerts'
 import type { ThemeSource } from '../domain/categories'
 import { Avatar, Modal } from './ui'
-import { Logo } from './Logo'
 import TransactionForm from './TransactionForm'
 import UpdateBanner from './UpdateBanner'
 import '../screens/screens.css'
@@ -86,9 +85,6 @@ function Sidebar(): React.JSX.Element {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar__logo">
-        <Logo size={24} />
-      </div>
       <div className="sidebar__profile">
         <Avatar name={name || 'Você'} src={photo} size={88} />
         <span className="sidebar__welcome">Bem-vindo de volta,</span>

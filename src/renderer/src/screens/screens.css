@@ -22,9 +22,6 @@
   color: var(--sidebar-text);
   overflow-y: auto;
 }
-.sidebar__logo {
-  padding: 0 var(--space-3);
-}
 .sidebar__profile {
   display: grid;
   justify-items: center;
@@ -194,14 +191,34 @@
 .dash-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-rows: 380px 340px 360px;
   gap: var(--space-4);
-  align-items: start;
 }
-.dash-grid__main,
-.dash-grid__side {
-  display: grid;
-  gap: var(--space-4);
+.dash-grid > *,
+.dash-pair > * {
   min-width: 0;
+  min-height: 0;
+}
+/* Caixa de altura fixa: o título fica parado e o conteúdo rola. */
+.dash-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dash-card__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-right: calc(var(--space-2) * -1);
+  padding-right: var(--space-2);
+}
+.dash-grid .donut-card {
+  overflow: hidden;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.dash-grid .donut-card .legend {
+  max-height: 100%;
+  overflow-y: auto;
 }
 
 .chart-box {
@@ -408,10 +425,10 @@
   font-variant-numeric: tabular-nums;
 }
 /* Na coluna estreita do Dashboard a data some. */
-.dash-grid__side .statement__row {
+.dash-card--recent .statement__row {
   grid-template-columns: 40px minmax(0, 1fr) auto 32px;
 }
-.dash-grid__side .statement__date {
+.dash-card--recent .statement__date {
   display: none;
 }
 
@@ -611,6 +628,11 @@
   }
   .dash-grid {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+  }
+  .dash-grid > .dash-card,
+  .dash-pair > .dash-card {
+    max-height: 420px;
   }
 }
 

@@ -177,7 +177,7 @@ function CategoryDonut({ entries }: { entries: MonthEntry[] }): React.JSX.Elemen
             </div>
           </div>
           <ul className="legend">
-            {totals.slice(0, 6).map((t) => (
+            {totals.map((t) => (
               <li key={t.name}>
                 <span className="legend__dot" style={{ background: t.color }} />
                 <span>{t.name}</span>
@@ -197,7 +197,7 @@ function Upcoming(): React.JSX.Element {
   const cards = useApp((s) => s.settings?.cards) ?? []
   const bills = useApp((s) => s.bills)
   const categories = useApp((s) => s.settings?.categories) ?? []
-  const items = dueItems(transactions, cards, bills, todayISO()).slice(0, 6)
+  const items = dueItems(transactions, cards, bills, todayISO())
   const open = (item: DueItem): void => {
     if (item.target.to === '/cartoes') {
       useApp.setState({ month: item.target.month })
@@ -206,70 +206,77 @@ function Upcoming(): React.JSX.Element {
   }
 
   return (
-    <Card>
+    <Card className="dash-card">
       <div className="card-head">
         <h2>Próximos vencimentos</h2>
         <Link className="text-link" to="/contas">
           Contas fixas
         </Link>
       </div>
-      {items.length === 0 ? (
-        <EmptyState
-          icon={<CalendarClock size={22} />}
-          title="Nada vencendo"
-          description={
-            cards.some((c) => c.dueDay) || bills.length
-              ? 'Nenhuma fatura ou conta em aberto para os próximos dias.'
-              : 'Cadastre o vencimento dos cartões em Configurações e as contas fixas em Contas.'
-          }
-        />
-      ) : (
-        <ul className="bills">
-          {items.map((item) => {
-            const bill = bills.find((b) => b.id === item.billId)
-            const { target } = item
-            const color =
-              target.to === '/cartoes'
-                ? (cards.find((c) => c.name === target.card)?.color ?? 'var(--accent)')
-                : 'var(--text-muted)'
-            return (
-              <li key={item.key}>
-                <button type="button" className="bills__row" onClick={() => open(item)}>
-                  {bill ? (
-                    <IconBadge icon={billIcon(bill, categories)} size={40} />
-                  ) : (
-                    <span
-                      className="bills__icon"
-                      style={{ color, background: `color-mix(in srgb, ${color} 16%, transparent)` }}
-                    >
-                      <CreditCard size={18} />
-                    </span>
-                  )}
-                  <div>
-                    <strong>{item.title}</strong>
-                    <small>
-                      {formatDayMonth(item.dueDate)} ·{' '}
-                      {item.kind === 'card' ? 'fatura' : 'conta fixa'}
-                    </small>
-                  </div>
-                  <div className="bills__right">
-                    <strong>{formatBRL(item.amountCents)}</strong>
-                    <Badge tone={item.days < 0 ? 'danger' : item.days <= 3 ? 'warning' : 'neutral'}>
-                      {item.days < 0
-                        ? 'atrasada'
-                        : item.days === 0
-                          ? 'hoje'
-                          : item.days === 1
-                            ? 'amanhã'
-                            : `em ${item.days} dias`}
-                    </Badge>
-                  </div>
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      )}
+      <div className="dash-card__body">
+        {items.length === 0 ? (
+          <EmptyState
+            icon={<CalendarClock size={22} />}
+            title="Nada vencendo"
+            description={
+              cards.some((c) => c.dueDay) || bills.length
+                ? 'Nenhuma fatura ou conta em aberto para os próximos dias.'
+                : 'Cadastre o vencimento dos cartões em Configurações e as contas fixas em Contas.'
+            }
+          />
+        ) : (
+          <ul className="bills">
+            {items.map((item) => {
+              const bill = bills.find((b) => b.id === item.billId)
+              const { target } = item
+              const color =
+                target.to === '/cartoes'
+                  ? (cards.find((c) => c.name === target.card)?.color ?? 'var(--accent)')
+                  : 'var(--text-muted)'
+              return (
+                <li key={item.key}>
+                  <button type="button" className="bills__row" onClick={() => open(item)}>
+                    {bill ? (
+                      <IconBadge icon={billIcon(bill, categories)} size={40} />
+                    ) : (
+                      <span
+                        className="bills__icon"
+                        style={{
+                          color,
+                          background: `color-mix(in srgb, ${color} 16%, transparent)`
+                        }}
+                      >
+                        <CreditCard size={18} />
+                      </span>
+                    )}
+                    <div>
+                      <strong>{item.title}</strong>
+                      <small>
+                        {formatDayMonth(item.dueDate)} ·{' '}
+                        {item.kind === 'card' ? 'fatura' : 'conta fixa'}
+                      </small>
+                    </div>
+                    <div className="bills__right">
+                      <strong>{formatBRL(item.amountCents)}</strong>
+                      <Badge
+                        tone={item.days < 0 ? 'danger' : item.days <= 3 ? 'warning' : 'neutral'}
+                      >
+                        {item.days < 0
+                          ? 'atrasada'
+                          : item.days === 0
+                            ? 'hoje'
+                            : item.days === 1
+                              ? 'amanhã'
+                              : `em ${item.days} dias`}
+                      </Badge>
+                    </div>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
     </Card>
   )
 }
@@ -286,25 +293,27 @@ function BudgetCard({
   const over = rows.filter((r) => r.level === 'over').length
 
   return (
-    <Card>
+    <Card className="dash-card">
       <div className="card-head">
         <h2>Orçamento</h2>
         <Link className="text-link" to="/metas">
           {rows.length ? 'Ver tudo' : 'Montar'}
         </Link>
       </div>
-      {rows.length === 0 ? (
-        <p className="muted small">Sem limites para {formatMonth(month).toLowerCase()}.</p>
-      ) : (
-        <>
-          {over > 0 && (
-            <p className="small level-text--over budget-total">
-              {over === 1 ? '1 categoria chegou' : `${over} categorias chegaram`} ao limite.
-            </p>
-          )}
-          <BudgetList rows={rows.slice(0, 4)} />
-        </>
-      )}
+      <div className="dash-card__body">
+        {rows.length === 0 ? (
+          <p className="muted small">Sem limites para {formatMonth(month).toLowerCase()}.</p>
+        ) : (
+          <>
+            {over > 0 && (
+              <p className="small level-text--over budget-total">
+                {over === 1 ? '1 categoria chegou' : `${over} categorias chegaram`} ao limite.
+              </p>
+            )}
+            <BudgetList rows={rows} />
+          </>
+        )}
+      </div>
     </Card>
   )
 }
@@ -312,22 +321,24 @@ function BudgetCard({
 function GoalsCard(): React.JSX.Element {
   const goals = useGoals().filter((g) => !g.progress.done)
   return (
-    <Card>
+    <Card className="dash-card">
       <div className="card-head">
         <h2>Metas</h2>
         <Link className="text-link" to="/metas">
           {goals.length ? 'Ver todas' : 'Criar'}
         </Link>
       </div>
-      {goals.length === 0 ? (
-        <EmptyState icon={<Target size={22} />} title="Nenhuma meta em andamento" />
-      ) : (
-        <div className="goals goals--compact">
-          {goals.slice(0, 3).map((view) => (
-            <GoalItem key={view.goal.id} view={view} />
-          ))}
-        </div>
-      )}
+      <div className="dash-card__body">
+        {goals.length === 0 ? (
+          <EmptyState icon={<Target size={22} />} title="Nenhuma meta em andamento" />
+        ) : (
+          <div className="goals goals--compact">
+            {goals.map((view) => (
+              <GoalItem key={view.goal.id} view={view} />
+            ))}
+          </div>
+        )}
+      </div>
     </Card>
   )
 }
@@ -397,26 +408,26 @@ export default function Dashboard(): React.JSX.Element {
         />
       </section>
 
+      {/* Grade em 3 linhas de altura fixa: caixas da mesma linha têm o mesmo tamanho e o
+          conteúdo que não cabe rola dentro delas. */}
       <div className="dash-grid">
-        <div className="dash-grid__main">
-          <CashFlow series={series} month={month} />
-          <CategoryDonut entries={entries} />
-          <div className="dash-pair">
-            <BudgetCard entries={entries} month={month} />
-            <GoalsCard />
+        <CashFlow series={series} month={month} />
+        <Upcoming />
+        <CategoryDonut entries={entries} />
+        <Card className="dash-card dash-card--recent">
+          <div className="card-head">
+            <h2>Lançamentos recentes</h2>
+            <Link className="text-link" to="/transacoes">
+              Ver todos
+            </Link>
           </div>
-        </div>
-        <div className="dash-grid__side">
-          <Upcoming />
-          <Card>
-            <div className="card-head">
-              <h2>Lançamentos recentes</h2>
-              <Link className="text-link" to="/transacoes">
-                Ver todos
-              </Link>
-            </div>
-            <Statement entries={entries} limit={6} />
-          </Card>
+          <div className="dash-card__body">
+            <Statement entries={entries} />
+          </div>
+        </Card>
+        <div className="dash-pair">
+          <BudgetCard entries={entries} month={month} />
+          <GoalsCard />
         </div>
       </div>
     </div>
