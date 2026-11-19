@@ -43,9 +43,9 @@ O plano completo, dividido em fases, está em `docs/PLANO.md`. **Trabalhe uma fa
 2. Rode `npm.cmd run release` para uma correção ou `npm.cmd run release -- minor` para uma novidade. O script:
    - confere o `GH_TOKEN`;
    - sugere as notas a partir dos commits desde a última versão, e você pode escrever as suas;
-   - sobe a versão (commit "Versão x.y.z" e tag);
-   - gera o instalador e cria um **rascunho** em github.com/joaogps2791/qfinancas/releases com o `.exe`, o `.blockmap` e o `latest.yml`;
-   - faz `git push --follow-tags`.
+   - sobe a versão (commit "Versão x.y.z" e tag) e faz `git push --follow-tags`;
+   - cria um **rascunho** em github.com/joaogps2791/qfinancas/releases já com as notas;
+   - gera o instalador e envia para o rascunho o `.exe`, o `.blockmap` e o `latest.yml`.
 3. No GitHub, abra o rascunho, revise e clique em **Publish release**. Só então os apps instalados enxergam a versão: eles procuram 10 s depois de abrir e a cada 6 horas, baixam em segundo plano e avisam "Versão x.y.z pronta. Reiniciar agora / Depois".
 
 O `GH_TOKEN` (token do GitHub só com "Contents: Read and write" no repositório `qfinancas`) fica só numa variável de ambiente do usuário no PC do João, nunca no código, no `.env` ou no app. Para definir, rode `[Environment]::SetEnvironmentVariable("GH_TOKEN", "<token>", "User")` e reabra o terminal.

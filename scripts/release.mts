@@ -6,7 +6,6 @@
 // Precisa do GH_TOKEN (token do GitHub com permissão só de "Contents" no repositório qfinancas)
 // numa variável de ambiente do PC. Ele nunca vai para o código, para o .env ou para o app.
 import { spawnSync } from 'node:child_process'
-import { writeFileSync } from 'node:fs'
 import { createInterface } from 'node:readline/promises'
 
 const REPO = 'joaogps2791/qfinancas'
@@ -68,15 +67,26 @@ const notes = typed.trim() || commits || 'Correções e melhorias.'
 run('npm', ['version', bump, '-m', '"Versão %s"'])
 const version = output('node', ['-p', '"require(\'./package.json\').version"'])
 
-// 2. O electron-builder põe build/release-notes.md no corpo do release.
-writeFileSync('build/release-notes.md', `${notes}\n`)
+// 2. Manda o commit e a tag antes: rascunho criado sem a tag no GitHub fica "untagged".
+run('git', ['push', '--follow-tags'])
 
-// 3. Gera e publica (em rascunho) o instalador.
+// 3. Cria o rascunho já com as notas. Se o electron-builder criar sozinho, ele envia os arquivos
+// em paralelo e às vezes cria dois rascunhos da mesma versão (e sem as notas).
+const created = await fetch(`https://api.github.com/repos/${REPO}/releases`, {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${process.env.GH_TOKEN}`,
+    Accept: 'application/vnd.github+json',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ tag_name: `v${version}`, name: version, body: notes, draft: true })
+})
+if (!created.ok)
+  fail(`O GitHub recusou criar o rascunho (${created.status}): ${await created.text()}`)
+
+// 4. Gera o instalador e envia os arquivos para esse rascunho.
 run('npm', ['run', 'build'])
 run('npx', ['electron-builder', '--win', '--publish', 'always'])
-
-// 4. Manda o commit e a tag para o GitHub.
-run('git', ['push', '--follow-tags'])
 
 console.log(`\n✔ Versão ${version} enviada como rascunho.`)
 console.log(`  Revise e clique em "Publish release": https://github.com/${REPO}/releases\n`)

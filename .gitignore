@@ -24,5 +24,3 @@ coverage/
 .DS_Store
 Thumbs.db
 
-# Notas geradas pelo npm run release
-build/release-notes.md
