@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { useLocation } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { FileUp, Plus } from 'lucide-react'
 import { openComposer, useApp } from '../data/store'
 import { formatBRL, monthEntries, summarizeEntries } from '../domain/finance'
 import { Button, Card } from '../components/ui'
@@ -10,6 +10,7 @@ import Statement from '../components/Statement'
 export default function Transactions(): React.JSX.Element {
   const transactions = useApp((s) => s.transactions)
   const month = useApp((s) => s.month)
+  const navigate = useNavigate()
   const entries = useMemo(() => monthEntries(transactions, month), [transactions, month])
   const summary = summarizeEntries(entries)
   const searchRef = useRef<HTMLInputElement>(null)
@@ -30,6 +31,9 @@ export default function Transactions(): React.JSX.Element {
         </div>
         <div className="page-head__actions">
           <MonthPicker />
+          <Button icon={<FileUp size={16} />} onClick={() => navigate('/importar')}>
+            Importar extrato
+          </Button>
           <Button variant="primary" icon={<Plus size={18} />} onClick={() => openComposer()}>
             Nova transação
           </Button>

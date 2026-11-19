@@ -206,15 +206,18 @@ function requireUid(): string {
   return uid
 }
 
-/** Grava vários lançamentos de uma vez (ex.: uma série recorrente). */
+/** Grava vários lançamentos de uma vez (ex.: uma série recorrente ou um extrato importado). */
 export async function addTransactions(inputs: TransactionInput[]): Promise<void> {
   const uid = requireUid()
-  const batch = writeBatch(db)
   const transactions = collection(db, ...userPath(uid, 'transactions'))
-  for (const input of inputs) {
-    batch.set(doc(transactions), { ...input, createdAt: serverTimestamp() })
+  // Um lote do Firestore aceita até 500 gravações (um extrato importado pode passar disso).
+  for (let start = 0; start < inputs.length; start += 450) {
+    const batch = writeBatch(db)
+    for (const input of inputs.slice(start, start + 450)) {
+      batch.set(doc(transactions), { ...input, createdAt: serverTimestamp() })
+    }
+    await batch.commit()
   }
-  await batch.commit()
 }
 
 /** Substitui o lançamento inteiro (assim, trocar de tipo não deixa campos do tipo antigo). */

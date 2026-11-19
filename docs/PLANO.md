@@ -148,12 +148,22 @@ Notas da Fase 5:
 
 ## Fase 6: Importar extrato
 
-- [ ] Importar **OFX** (o formato que a maioria dos bancos exporta) e **CSV**.
-- [ ] Para CSV: tela de mapeamento de colunas (data, descrição, valor, débito/crédito), com perfis salvos por banco (ex.: "Nubank conta", "Nubank cartão", "Itaú").
-- [ ] Prévia antes de salvar: lista com a categoria sugerida pela categorização automática, para o João poder corrigir.
-- [ ] **Detecção de duplicados:** mesmo valor + mesma data (±1 dia) + descrição parecida → marcar e não importar, a não ser que o João confirme.
-- [ ] Escolher se o arquivo é de conta (vira entrada/à vista) ou de cartão (vira lançamento de cartão numa fatura).
-- [ ] Testes com arquivos OFX/CSV de exemplo (dados falsos) em `tests/fixtures/`.
+- [x] Importar **OFX** (o formato que a maioria dos bancos exporta) e **CSV**.
+- [x] Para CSV: tela de mapeamento de colunas (data, descrição, valor, débito/crédito), com perfis salvos por banco (ex.: "Nubank conta", "Nubank cartão", "Itaú").
+- [x] Prévia antes de salvar: lista com a categoria sugerida pela categorização automática, para o João poder corrigir.
+- [x] **Detecção de duplicados:** mesmo valor + mesma data (±1 dia) + descrição parecida → marcar e não importar, a não ser que o João confirme.
+- [x] Escolher se o arquivo é de conta (vira entrada/à vista) ou de cartão (vira lançamento de cartão numa fatura).
+- [x] Testes com arquivos OFX/CSV de exemplo (dados falsos) em `tests/fixtures/`.
+
+Notas da Fase 6:
+- **Onde fica:** a tela é `#/importar`, aberta pelo botão "Importar extrato" em Transações. A leitura dos arquivos está em `domain/importer.ts`, que é puro e testado. Os arquivos de exemplo estão em `tests/fixtures/`: OFX 1.x em Windows-1252, OFX 2.x de cartão e quatro CSV (Nubank conta, Nubank cartão, Itaú e débito/crédito em colunas separadas).
+- **CSV:** o separador (`;`, `,` ou tab) e o formato do número (`1.234,56` ou `1234.56`) são detectados sozinhos. As colunas são sugeridas pelo cabeçalho e dá para ajustar. Os perfis ficam em `settings/main.importProfiles`, guardando as colunas pela posição. O app não vem com perfis prontos: na primeira vez com cada banco, você confere e salva.
+- **Datas:** o app entende dia/mês/ano e ano-mês-dia. Arquivo em mês/dia (padrão americano) sai com a data errada.
+- **Duplicados:** mesmo valor, data com até 1 dia de diferença e descrição parecida (uma contém a outra, ou metade das palavras em comum, sem acento). No cartão também vale o valor de uma parcela de compra parcelada. A linha repetida fica desmarcada, e você pode marcar se quiser importar mesmo assim.
+- **Cartão:** cada compra entra em 1x na fatura escolhida, sugerida pela compra mais recente e pelo fechamento do cartão. Valores positivos (pagamento da fatura e estorno) ficam de fora.
+- **Conta:** crédito vira entrada, com o tipo sugerido pela descrição (Salário, Reembolso, Investimentos ou Outros). Débito vira saída à vista, com a forma de pagamento escolhida para o arquivo todo.
+- Sem regra que bata, a categoria sugerida na importação é "Outros", se ela existir.
+- Os lançamentos são gravados em lotes de 450, porque o limite do Firestore é 500 por lote.
 
 ## Fase 7: Relatórios e exportação
 

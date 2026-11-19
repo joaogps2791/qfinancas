@@ -1,4 +1,5 @@
 // Categorias, cartões padrão e categorização automática (portados do legacy/script.js).
+import type { CsvMapping } from './importer'
 
 export type ThemeSource = 'system' | 'light' | 'dark'
 export type Category = { name: string; color: string; icon: string }
@@ -14,6 +15,8 @@ export type Settings = {
   contributionTargets?: { key: string; monthlyCents: number }[]
   /** P/VP e dividend yield (%) preenchidos à mão: o plano grátis da brapi não traz esses campos */
   assetInfo?: Record<string, { pvp?: number; dy?: number }>
+  /** perfis de leitura de CSV por banco ("Nubank conta", "Itaú"...) */
+  importProfiles?: { name: string; mapping: CsvMapping }[]
 }
 
 export const DEFAULT_CATEGORIES = [
@@ -446,13 +449,19 @@ export function detectBrand(description: string): Brand | null {
 
 export const brandById = (id: string): Brand | undefined => BRANDS.find((b) => b.id === id)
 
-/** Sugere a categoria pela descrição; sem regra que bata, fica a primeira categoria do usuário. */
-export function classifyCategory(description: string, categories: string[]): string {
+/** Sugere a categoria pela descrição; sem regra que bata, fica `fallback` (se existir) ou a primeira. */
+export function classifyCategory(
+  description: string,
+  categories: string[],
+  fallback?: string
+): string {
   const brand = detectBrand(description)
   if (brand && categories.includes(brand.category)) return brand.category
   const text = normalizeText(description)
   const match = RULE_PATTERNS.find(
     ({ category, pattern }) => categories.includes(category) && pattern.test(text)
   )
-  return match?.category ?? categories[0] ?? DEFAULT_CATEGORIES[0]
+  if (match) return match.category
+  if (fallback && categories.includes(fallback)) return fallback
+  return categories[0] ?? DEFAULT_CATEGORIES[0]
 }

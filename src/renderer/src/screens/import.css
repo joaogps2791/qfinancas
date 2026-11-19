@@ -1,0 +1,68 @@
+/* Importar extrato. Só tokens de styles/tokens.css. */
+
+.import-setup,
+.import-mapping {
+  display: grid;
+  gap: var(--space-4);
+}
+.import-setup__file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.import-setup__grid,
+.import-mapping__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+.import-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.import-mapping__toggles {
+  display: grid;
+  grid-template-columns: minmax(0, 520px);
+  gap: var(--space-3);
+}
+
+.import-table td {
+  vertical-align: middle;
+}
+.import-table td small {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.import-table td small.level-text--warning {
+  color: var(--warning);
+}
+.import-table__desc {
+  font-weight: 500;
+}
+.import-table td.positive {
+  color: var(--success);
+}
+.import-table tr.is-off td {
+  color: var(--text-muted);
+}
+.import-table tr.is-off .import-table__desc {
+  text-decoration: line-through;
+}
+.import-table input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+.nowrap {
+  white-space: nowrap;
+}
+.cell-select {
+  min-width: 160px;
+  height: 34px;
+  padding-block: 0;
+  font-size: var(--text-sm);
+}
