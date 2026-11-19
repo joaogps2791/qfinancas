@@ -78,7 +78,7 @@ async function savePdf(name: string): Promise<string | null> {
 export default function Reports(): React.JSX.Element {
   const transactions = useApp((s) => s.transactions)
   const month = useApp((s) => s.month)
-  const categories = useApp((s) => s.settings?.categories ?? [])
+  const categories = useApp((s) => s.settings?.categories) ?? []
   const { investmentTransactions, fixedIncome, dividends } = useApp((s) => s.investments)
   const [kind, setKind] = useState<Period['kind']>('month')
   const [year, setYear] = useState(Number(month.slice(0, 4)))

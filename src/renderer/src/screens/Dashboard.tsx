@@ -134,7 +134,7 @@ function CashFlow({ series, month }: { series: MonthPoint[]; month: string }): R
 }
 
 function CategoryDonut({ entries }: { entries: MonthEntry[] }): React.JSX.Element {
-  const categories = useApp((s) => s.settings?.categories ?? [])
+  const categories = useApp((s) => s.settings?.categories) ?? []
   const totals = Object.entries(totalsByCategory(entries))
     .map(([name, cents]) => ({
       name,
@@ -194,9 +194,9 @@ function CategoryDonut({ entries }: { entries: MonthEntry[] }): React.JSX.Elemen
 function Upcoming(): React.JSX.Element {
   const navigate = useNavigate()
   const transactions = useApp((s) => s.transactions)
-  const cards = useApp((s) => s.settings?.cards ?? [])
+  const cards = useApp((s) => s.settings?.cards) ?? []
   const bills = useApp((s) => s.bills)
-  const categories = useApp((s) => s.settings?.categories ?? [])
+  const categories = useApp((s) => s.settings?.categories) ?? []
   const items = dueItems(transactions, cards, bills, todayISO()).slice(0, 6)
   const open = (item: DueItem): void => {
     if (item.target.to === '/cartoes') {

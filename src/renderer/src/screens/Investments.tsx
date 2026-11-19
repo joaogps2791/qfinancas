@@ -619,7 +619,7 @@ function Contributions({
   contributions: ReturnType<typeof contributionsInMonth>
   tickers: string[]
 }): React.JSX.Element {
-  const targets = useApp((s) => s.settings?.contributionTargets ?? [])
+  const targets = useApp((s) => s.settings?.contributionTargets) ?? []
   const [editing, setEditing] = useState(false)
   const total = contributions.reduce((s, c) => s + c.cents, 0)
   const goal = targets.reduce((s, t) => s + t.monthlyCents, 0)
@@ -695,7 +695,7 @@ function TargetsEditor({
   tickers: string[]
   onDone: () => void
 }): React.JSX.Element {
-  const saved = useApp((s) => s.settings?.contributionTargets ?? [])
+  const saved = useApp((s) => s.settings?.contributionTargets) ?? []
   const [rows, setRows] = useState(
     saved.map((t) => ({ key: t.key, amount: centsToInput(t.monthlyCents) }))
   )

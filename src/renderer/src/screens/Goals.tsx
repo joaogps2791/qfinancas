@@ -187,7 +187,7 @@ function BudgetEditor({
   previous: { month: string; limits: BudgetLimits } | null
   onDone: () => void
 }): React.JSX.Element {
-  const categories = useApp((s) => s.settings?.categories ?? [])
+  const categories = useApp((s) => s.settings?.categories) ?? []
   // Categorias de hoje + as que já tinham limite (caso alguma tenha saído das Configurações).
   const names = [...new Set([...categories.map((c) => c.name), ...Object.keys(limits)])]
   const toInputs = (source: BudgetLimits): Record<string, string> =>

@@ -57,7 +57,7 @@ export default function Statement({
   searchRef,
   emptyText = 'Nenhum lançamento neste mês.'
 }: StatementProps): React.JSX.Element {
-  const categories = useApp((s) => s.settings?.categories ?? [])
+  const categories = useApp((s) => s.settings?.categories) ?? []
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
   const [deleting, setDeleting] = useState<Transaction | null>(null)

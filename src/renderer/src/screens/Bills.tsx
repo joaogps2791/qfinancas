@@ -61,7 +61,7 @@ const billFields = (bill: Bill): Omit<Bill, 'id' | 'paid'> => ({
 
 export default function Bills(): React.JSX.Element {
   const bills = useApp((s) => s.bills)
-  const categories = useApp((s) => s.settings?.categories ?? [])
+  const categories = useApp((s) => s.settings?.categories) ?? []
   const location = useLocation()
   const highlight = (location.state as { bill?: string } | null)?.bill
   const [editing, setEditing] = useState<Bill | 'new' | null>(null)
@@ -242,7 +242,7 @@ export default function Bills(): React.JSX.Element {
 }
 
 function BillForm({ bill, onDone }: { bill?: Bill; onDone: () => void }): React.JSX.Element {
-  const categories = useApp((s) => s.settings?.categories ?? [])
+  const categories = useApp((s) => s.settings?.categories) ?? []
   const names = categories.map((c) => c.name)
   const [form, setForm] = useState({
     name: bill?.name ?? '',

@@ -13,7 +13,7 @@ const pad = (n: number): string => String(n).padStart(2, '0')
 export default function Cards(): React.JSX.Element {
   const transactions = useApp((s) => s.transactions)
   const month = useApp((s) => s.month)
-  const cards = useApp((s) => s.settings?.cards ?? [])
+  const cards = useApp((s) => s.settings?.cards) ?? []
   // A escolha vale para a navegação em que foi feita; um clique numa notificação
   // (nova navegação com { card }) passa na frente.
   const location = useLocation()
