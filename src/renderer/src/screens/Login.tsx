@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Logo } from '../components/Logo'
 import {
   friendlyError,
   resetPassword,
@@ -38,7 +39,9 @@ export default function Login(): React.JSX.Element {
   return (
     <main className="center">
       <form className="card login" onSubmit={submit}>
-        <h1>QFinanças</h1>
+        <h1>
+          <Logo size={32} />
+        </h1>
         <p className="muted">
           {mode === 'signin' ? 'Entre na sua conta.' : 'Crie sua conta para começar.'}
         </p>

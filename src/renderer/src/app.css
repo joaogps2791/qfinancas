@@ -70,6 +70,26 @@ button {
   place-items: center;
 }
 
+/* Tela de carregamento: o logo pulsando de leve enquanto o Firebase responde. */
+.splash {
+  align-content: center;
+  gap: var(--space-4);
+}
+.splash .logo-mark {
+  animation: splash-pulse 1.6s ease-in-out infinite;
+}
+@keyframes splash-pulse {
+  50% {
+    opacity: 0.55;
+    transform: scale(0.94);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .splash .logo-mark {
+    animation: none;
+  }
+}
+
 .muted {
   color: var(--text-muted);
 }

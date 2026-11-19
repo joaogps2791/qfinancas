@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { HashRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { useApp } from './data/store'
+import { LogoMark } from './components/Logo'
 import Login from './screens/Login'
 import Home from './screens/Home'
 import DevUi from './screens/DevUi'
@@ -23,7 +24,10 @@ export default function App(): React.JSX.Element {
 
   const home =
     user === undefined ? (
-      <div className="center muted">Carregando…</div>
+      <div className="center splash" role="status">
+        <LogoMark size={64} />
+        <span className="muted">Carregando…</span>
+      </div>
     ) : user ? (
       <Home />
     ) : (
@@ -32,7 +36,10 @@ export default function App(): React.JSX.Element {
 
   return (
     <>
-      <div className="titlebar">QFinanças</div>
+      <div className="titlebar">
+        <LogoMark size={18} decorative />
+        QFinanças
+      </div>
       {/* HashRouter porque o app roda de file:// no instalador. */}
       <HashRouter>
         <DevShortcut />

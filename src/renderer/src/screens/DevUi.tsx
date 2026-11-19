@@ -16,30 +16,11 @@ import {
   Toggle,
   Tooltip
 } from '../components/ui'
-import { Logo, LogoMark, type LogoOption } from '../components/Logo'
+import { Logo, LogoMark } from '../components/Logo'
 import ThemePicker from '../components/ThemePicker'
 import './DevUi.css'
 
 // Página escondida (#/dev/ui, atalho Ctrl+Shift+U) para revisar o design system nos dois temas.
-
-// shortcut: propostas de logo da Fase 2; depois da escolha, sai daqui e fica só a escolhida.
-const LOGO_OPTIONS: { value: LogoOption; name: string; idea: string }[] = [
-  {
-    value: 'anel',
-    name: 'Opção 1: Anel',
-    idea: 'Um Q de traço grosso, como uma moeda vista de cima.'
-  },
-  {
-    value: 'bloco',
-    name: 'Opção 2: Bloco',
-    idea: 'O Q em branco dentro de um quadrado laranja, no estilo ícone de app.'
-  },
-  {
-    value: 'donut',
-    name: 'Opção 3: Donut',
-    idea: 'O Q feito de um gráfico de rosca em três partes, como o do Dashboard.'
-  }
-]
 
 const SWATCHES = [
   'bg',
@@ -68,24 +49,18 @@ function Showcase(): React.JSX.Element {
   return (
     <div className="devui-stack">
       <section>
-        <h2>Logo: escolha uma</h2>
-        <div className="devui-logos">
-          {LOGO_OPTIONS.map((o) => (
-            <Card key={o.value} className="devui-logo">
-              <strong>{o.name}</strong>
-              <p className="muted">{o.idea}</p>
-              <div className="row devui-sizes">
-                {[64, 32, 24, 16].map((s) => (
-                  <LogoMark key={s} option={o.value} size={s} />
-                ))}
-              </div>
-              <Logo option={o.value} />
-              <div className="devui-onsidebar">
-                <Logo option={o.value} size={22} />
-              </div>
-            </Card>
-          ))}
-        </div>
+        <h2>Logo</h2>
+        <Card className="devui-logo">
+          <div className="row devui-sizes">
+            {[64, 32, 24, 16].map((s) => (
+              <LogoMark key={s} size={s} />
+            ))}
+          </div>
+          <Logo />
+          <div className="devui-onsidebar">
+            <Logo size={22} />
+          </div>
+        </Card>
       </section>
 
       <section>

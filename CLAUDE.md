@@ -31,6 +31,7 @@ O plano completo, dividido em fases, está em `docs/PLANO.md`. **Trabalhe uma fa
 - `npm test`: roda os testes (Vitest, arquivos `*.test.ts`)
 - `npm run typecheck` e `npm run lint`: checam tipos e estilo
 - `npm run build:win`: gera o instalador do Windows em `dist/`
+- `npm run icons`: gera os ícones do Windows a partir de `resources/logo.svg`
 - `firebase deploy --only firestore:rules`: publica o `firestore.rules` (o João roda)
 
 ## Onde fica cada coisa
