@@ -3,11 +3,39 @@
 .invest-grid {
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
+  grid-template-rows: 420px;
   gap: var(--space-4);
-  align-items: start;
 }
 .invest-grid--even {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: 520px;
+}
+.invest-grid > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Caixas como no Dashboard: lado a lado com a mesma altura; o que não cabe rola dentro da
+   caixa, com o título parado no topo. */
+.invest-box {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.invest-box > * {
+  min-width: 0;
+}
+.invest-box--wide {
+  max-height: 460px;
+}
+.invest-box > h2,
+.invest-box > .card-head {
+  position: sticky;
+  top: calc(var(--space-5) * -1);
+  z-index: 1;
+  margin-top: calc(var(--space-5) * -1);
+  padding-top: var(--space-5);
+  padding-bottom: var(--space-2);
+  background: var(--surface);
 }
 .invest-grid .donut-card {
   grid-template-columns: 1fr;
@@ -136,5 +164,9 @@
   .invest-grid,
   .invest-grid--even {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+  }
+  .invest-box {
+    max-height: 460px;
   }
 }

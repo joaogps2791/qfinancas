@@ -250,7 +250,7 @@ function Allocation({
   total: number
 }): React.JSX.Element {
   return (
-    <Card className="donut-card">
+    <Card className="donut-card invest-box">
       <h2>Por classe</h2>
       <div className="donut">
         <ResponsiveContainer width="100%" height={190}>
@@ -294,7 +294,7 @@ function Allocation({
 
 function AssetsTable({ assets }: { assets: AssetRow[] }): React.JSX.Element {
   return (
-    <Card className="table-card">
+    <Card className="table-card invest-box">
       <h2>Ativos</h2>
       {assets.length === 0 ? (
         <EmptyState title="Nenhuma ação, FII ou ETF na carteira" />
@@ -372,7 +372,7 @@ function FixedTable({
     }
   }
   return (
-    <Card className="table-card">
+    <Card className="table-card invest-box invest-box--wide">
       <div className="card-head">
         <h2>Tesouro e renda fixa</h2>
         <Badge tone="warning">Estimativa</Badge>
@@ -480,7 +480,7 @@ function Dividends({
   }
 
   return (
-    <Card className="dividends-card">
+    <Card className="dividends-card invest-box">
       <h2>Proventos por mês</h2>
       <div className="chart-box">
         <ResponsiveContainer width="100%" height={180}>
@@ -625,7 +625,7 @@ function Contributions({
   const goal = targets.reduce((s, t) => s + t.monthlyCents, 0)
 
   return (
-    <Card>
+    <Card className="invest-box">
       <div className="card-head">
         <div>
           <h2>Aportes do mês</h2>
@@ -797,7 +797,7 @@ function History(): React.JSX.Element {
   }
 
   return (
-    <Card>
+    <Card className="invest-box invest-box--wide">
       <h2>Histórico de aportes e vendas</h2>
       {rows.length === 0 ? (
         <EmptyState title="Nada lançado ainda" />

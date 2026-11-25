@@ -121,6 +121,11 @@ async function fetchSeries(code: number, from: string, to: string): Promise<Rate
     const end = addYears(start, 9) < to ? addYears(start, 9) : to
     const url = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.${code}/dados?formato=json&dataInicial=${toBcb(start)}&dataFinal=${toBcb(end)}`
     const response = await fetch(url, { signal: AbortSignal.timeout(30_000) })
+    // 404 "Value(s) not found" = período ainda sem dado publicado (ex.: IPCA do mês corrente).
+    if (response.status === 404) {
+      if (end === to) break
+      continue
+    }
     if (!response.ok) throw new Error(`O Banco Central respondeu com erro (${response.status}).`)
     const rows = (await response.json()) as { data: string; valor: string }[]
     for (const row of rows) points.push({ date: fromBcb(row.data), value: Number(row.valor) })
