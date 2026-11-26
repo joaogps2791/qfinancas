@@ -204,13 +204,29 @@ export type MonthEntry = {
   date: string
   amountCents: number
   installmentNumber?: number
+  /**
+   * Pagamento antecipado no mês em que foi pago: o dinheiro sai da conta aqui (valor positivo),
+   * enquanto o crédito (negativo) abate a fatura no mês dela. Não faz parte de nenhuma fatura.
+   */
+  prepayment?: boolean
 }
 
-/** Tudo que pesa no mês: entradas e à vista pela data, cartão pela fatura. */
+/**
+ * Tudo que pesa no mês: entradas e à vista pela data, cartão pela fatura. Pagamento antecipado
+ * aparece duas vezes: como saída na data do pagamento e como crédito na fatura que abate.
+ */
 export function monthEntries(transactions: Transaction[], key: string): MonthEntry[] {
   const entries: MonthEntry[] = []
   for (const transaction of transactions) {
     if (transaction.kind === 'card') {
+      if (transaction.credit && monthKey(transaction.date) === key) {
+        entries.push({
+          transaction,
+          date: transaction.date,
+          amountCents: transaction.amountCents,
+          prepayment: true
+        })
+      }
       for (const item of expandInstallments(transaction)) {
         if (item.statementMonth === key) {
           entries.push({
@@ -235,6 +251,8 @@ export type MonthSummary = {
   cardCents: number
   /** parte de `cardCents` em faturas ainda não pagas (fica fora das saídas) */
   pendingCardCents: number
+  /** pagamentos antecipados feitos no mês (contam nas saídas) */
+  prepaidCents: number
   expenseCents: number
   balanceCents: number
 }
@@ -257,22 +275,35 @@ export function summarizeEntries(
     entries.filter((e) => e.transaction.kind === kind).reduce((sum, e) => sum + e.amountCents, 0)
   const incomeCents = total('income')
   const cashCents = total('cash')
-  // Só as compras; o crédito (negativo) já saiu da conta e só diminui o que falta pagar.
-  const cardCents = entries
-    .filter((e) => e.transaction.kind === 'card' && e.amountCents > 0)
+  const invoiceEntries = entries.filter((e) => e.transaction.kind === 'card' && !e.prepayment)
+  // Só as compras das faturas do mês (o crédito, negativo, só diminui o que falta pagar).
+  const cardCents = invoiceEntries
+    .filter((e) => e.amountCents > 0)
     .reduce((sum, e) => sum + e.amountCents, 0)
-  const openByCard = new Map<string, number>()
-  for (const e of entries) {
-    if (e.transaction.kind !== 'card' || !paid || paid(e.transaction.card)) continue
-    openByCard.set(e.transaction.card, (openByCard.get(e.transaction.card) ?? 0) + e.amountCents)
+  // Pagamentos antecipados feitos neste mês: saem da conta agora, seja qual for a fatura.
+  const prepaidCents = entries
+    .filter((e) => e.prepayment)
+    .reduce((sum, e) => sum + e.amountCents, 0)
+  // Fatura de cada cartão: compras menos créditos.
+  const netByCard = new Map<string, number>()
+  for (const e of invoiceEntries) {
+    if (e.transaction.kind !== 'card') continue
+    netByCard.set(e.transaction.card, (netByCard.get(e.transaction.card) ?? 0) + e.amountCents)
   }
-  const pendingCardCents = [...openByCard.values()].reduce((sum, v) => sum + Math.max(v, 0), 0)
-  const expenseCents = cashCents + cardCents - pendingCardCents
+  let pendingCardCents = 0
+  let invoicesCents = 0
+  for (const [card, net] of netByCard) {
+    // Paga: sai o que faltava. Em aberto: nada sai ainda (fica como "a pagar").
+    if (!paid || paid(card)) invoicesCents += net
+    else pendingCardCents += Math.max(net, 0)
+  }
+  const expenseCents = cashCents + invoicesCents + prepaidCents
   return {
     incomeCents,
     cashCents,
     cardCents,
     pendingCardCents,
+    prepaidCents,
     expenseCents,
     balanceCents: incomeCents - expenseCents
   }
@@ -314,14 +345,30 @@ export function suggestInvoiceDate(
 
 export type UpcomingInvoice = { card: string; dueDate: string; totalCents: number; count: number }
 
-/**
- * Próxima fatura em aberto (com compras e não paga) de cada cartão usado nos lançamentos: a
- * deste mês, mesmo vencida, ou uma futura. O vencimento é o dia cadastrado no cartão; sem ele,
- * o da fatura escolhida em cada compra.
- */
+type InvoiceCard = { name: string; dueDay?: number; paidInvoices?: string[] }
+
+/** Próxima fatura em aberto de cada cartão (ver `openInvoices`). */
 export function upcomingInvoices(
   transactions: Transaction[],
-  cards: { name: string; dueDay?: number; paidInvoices?: string[] }[],
+  cards: InvoiceCard[],
+  today: string
+): UpcomingInvoice[] {
+  const next = new Map<string, UpcomingInvoice>()
+  for (const invoice of openInvoices(transactions, cards, today)) {
+    const current = next.get(invoice.card)
+    if (!current || invoice.dueDate < current.dueDate) next.set(invoice.card, invoice)
+  }
+  return [...next.values()].sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+}
+
+/**
+ * Faturas em aberto (com saldo a pagar e não pagas) de cada cartão usado nos lançamentos: a deste
+ * mês, mesmo vencida, e as futuras. O vencimento é o dia cadastrado no cartão; sem ele, o da
+ * fatura escolhida em cada compra.
+ */
+export function openInvoices(
+  transactions: Transaction[],
+  cards: InvoiceCard[],
   today: string
 ): UpcomingInvoice[] {
   const byName = new Map(cards.map((c) => [c.name, c]))
@@ -355,14 +402,10 @@ export function upcomingInvoices(
       if (dueDate < invoice.dueDate) invoice.dueDate = dueDate
     }
   }
-  const next = new Map<string, UpcomingInvoice>()
-  for (const invoice of invoices.values()) {
-    // quitada com pagamento antecipado: não tem o que pagar
-    if (invoice.totalCents <= 0) continue
-    const current = next.get(invoice.card)
-    if (!current || invoice.dueDate < current.dueDate) next.set(invoice.card, invoice)
-  }
-  return [...next.values()].sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+  // quitada com pagamento antecipado: não tem o que pagar
+  return [...invoices.values()]
+    .filter((invoice) => invoice.totalCents > 0)
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
 }
 
 // ---------- Série mensal (gráfico de fluxo de caixa) ----------

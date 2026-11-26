@@ -60,10 +60,15 @@ export function buildReport(transactions: Transaction[], months: string[]): Repo
     months: perMonth.map((m) => ({ month: m.month, ...summarizeEntries(m.entries) })),
     totals: summarizeEntries(entries),
     entries,
+    // pagamento antecipado não é gasto de categoria; no cartão vale só a fatura (sem a saída)
     byCategory: slices(entries, (e) =>
-      e.transaction.kind === 'income' ? null : e.transaction.category
+      e.transaction.kind === 'income' || (e.transaction.kind === 'card' && e.transaction.credit)
+        ? null
+        : e.transaction.category
     ),
-    byCard: slices(entries, (e) => (e.transaction.kind === 'card' ? e.transaction.card : null)),
+    byCard: slices(entries, (e) =>
+      e.transaction.kind === 'card' && !e.prepayment ? e.transaction.card : null
+    ),
     byIncomeType: slices(entries, (e) =>
       e.transaction.kind === 'income' ? e.transaction.incomeType : null
     )

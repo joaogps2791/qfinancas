@@ -5,6 +5,7 @@ import {
   formatBRL,
   formatDayMonth,
   monthKey,
+  openInvoices,
   shiftMonthKey,
   upcomingInvoices,
   type Transaction
@@ -74,16 +75,26 @@ export type DueItem = {
 }
 
 /**
- * Próximos vencimentos: a próxima fatura de cada cartão com dia de vencimento e, de cada conta
- * fixa ativa, a primeira ocorrência ainda não paga (deste mês, mesmo atrasada, ou do próximo).
+ * Próximos vencimentos: a próxima fatura em aberto de cada cartão e, de cada conta fixa ativa, a
+ * primeira ocorrência ainda não paga (deste mês, mesmo atrasada, ou do próximo).
+ * Com `month` de outro mês (o escolhido no Dashboard): as faturas e contas que vencem nele, mais
+ * o que ficou atrasado.
  */
 export function dueItems(
   transactions: Transaction[],
   cards: Card[],
   bills: Bill[],
-  today: string
+  today: string,
+  month = monthKey(today)
 ): DueItem[] {
-  const items: DueItem[] = upcomingInvoices(transactions, cards, today).map((inv) => ({
+  const thisMonth = monthKey(today)
+  const other = month !== thisMonth
+  const invoices = other
+    ? openInvoices(transactions, cards, today).filter(
+        (inv) => monthKey(inv.dueDate) === month || inv.dueDate < today
+      )
+    : upcomingInvoices(transactions, cards, today)
+  const items: DueItem[] = invoices.map((inv) => ({
     key: `card:${inv.card}:${inv.dueDate}`,
     kind: 'card',
     title: `Fatura ${inv.card}`,
@@ -93,24 +104,25 @@ export function dueItems(
     month: monthKey(inv.dueDate),
     target: { to: '/cartoes', card: inv.card, month: monthKey(inv.dueDate) }
   }))
-  const thisMonth = monthKey(today)
   for (const bill of bills) {
-    const month = [thisMonth, shiftMonthKey(thisMonth, 1)].find(
-      (m) => billRunsIn(bill, m) && !bill.paid?.[m]
-    )
-    if (!month) continue
-    const dueDate = billDueDate(bill, month)
-    items.push({
-      key: `bill:${bill.id}:${month}`,
-      kind: 'bill',
-      title: bill.name,
-      dueDate,
-      amountCents: bill.amountCents,
-      days: daysUntil(dueDate, today),
-      month,
-      billId: bill.id,
-      target: { to: '/contas', bill: bill.id }
-    })
+    const open = (m: string): boolean => billRunsIn(bill, m) && !bill.paid?.[m]
+    const months = other
+      ? [thisMonth, month].filter((m) => open(m) && (m === month || billDueDate(bill, m) < today))
+      : [[thisMonth, shiftMonthKey(thisMonth, 1)].find(open)].filter((m) => m !== undefined)
+    for (const m of months) {
+      const dueDate = billDueDate(bill, m)
+      items.push({
+        key: `bill:${bill.id}:${m}`,
+        kind: 'bill',
+        title: bill.name,
+        dueDate,
+        amountCents: bill.amountCents,
+        days: daysUntil(dueDate, today),
+        month: m,
+        billId: bill.id,
+        target: { to: '/contas', bill: bill.id }
+      })
+    }
   }
   return items.sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.title.localeCompare(b.title))
 }

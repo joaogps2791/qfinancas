@@ -9,7 +9,14 @@ import {
   useApp
 } from '../data/store'
 import { normalizeText } from '../domain/categories'
-import { formatBRL, formatDayMonth, type MonthEntry, type Transaction } from '../domain/finance'
+import {
+  formatBRL,
+  formatDayMonth,
+  formatMonth,
+  monthKey,
+  type MonthEntry,
+  type Transaction
+} from '../domain/finance'
 import { Button, EmptyState, Menu, Modal, Pills, Select } from './ui'
 import { IconBadge } from './TxIcon'
 import { resolveTxIcon } from './iconData'
@@ -31,6 +38,8 @@ function detail(entry: MonthEntry): string {
       : ''
   if (t.kind === 'income') return t.incomeType
   if (t.kind === 'cash') return `${t.category} · ${t.paymentMethod}${series}`
+  if (entry.prepayment)
+    return `${t.card} · abate a fatura de ${formatMonth(monthKey(t.invoiceDate))}`
   const installment = t.installments > 1 ? ` · ${entry.installmentNumber}/${t.installments}` : ''
   return `${t.category} · ${t.card}${installment}${series}`
 }
@@ -195,7 +204,7 @@ export default function Statement({
             const income = t.kind === 'income' || entry.amountCents < 0
             return (
               <li
-                key={`${t.id}-${entry.installmentNumber ?? 0}`}
+                key={`${t.id}-${entry.installmentNumber ?? 0}${entry.prepayment ? '-pago' : ''}`}
                 className={withFilters ? 'statement__row statement__row--select' : 'statement__row'}
               >
                 {withFilters && (

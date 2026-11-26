@@ -83,6 +83,7 @@ describe('buildReport', () => {
       cashCents: 30000,
       cardCents: 112000,
       pendingCardCents: 0,
+      prepaidCents: 0,
       expenseCents: 142000,
       balanceCents: -42000
     })

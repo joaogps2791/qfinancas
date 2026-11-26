@@ -29,6 +29,7 @@ import {
   formatMonthShort,
   invoicePaidBy,
   monthEntries,
+  monthKey,
   monthlySeries,
   percentChange,
   todayISO,
@@ -199,7 +200,9 @@ function Upcoming(): React.JSX.Element {
   const cards = useApp((s) => s.settings?.cards) ?? []
   const bills = useApp((s) => s.bills)
   const categories = useApp((s) => s.settings?.categories) ?? []
-  const items = dueItems(transactions, cards, bills, todayISO())
+  // Segue o mês escolhido no topo; o que está atrasado aparece em qualquer mês.
+  const month = useApp((s) => s.month)
+  const items = dueItems(transactions, cards, bills, todayISO(), month)
   const open = (item: DueItem): void => {
     if (item.target.to === '/cartoes') {
       useApp.setState({ month: item.target.month })
@@ -221,9 +224,11 @@ function Upcoming(): React.JSX.Element {
             icon={<CalendarClock size={22} />}
             title="Nada vencendo"
             description={
-              cards.some((c) => c.dueDay) || bills.length
-                ? 'Nenhuma fatura ou conta em aberto para os próximos dias.'
-                : 'Cadastre o vencimento dos cartões em Configurações e as contas fixas em Contas.'
+              month !== monthKey(todayISO())
+                ? `Nada vence em ${formatMonth(month).toLowerCase()}.`
+                : cards.some((c) => c.dueDay) || bills.length
+                  ? 'Nenhuma fatura ou conta em aberto para os próximos dias.'
+                  : 'Cadastre o vencimento dos cartões em Configurações e as contas fixas em Contas.'
             }
           />
         ) : (

@@ -186,6 +186,7 @@ describe('totais do mês', () => {
       cashCents: 30000,
       cardCents: 33334,
       pendingCardCents: 0,
+      prepaidCents: 0,
       expenseCents: 63334,
       balanceCents: 436666
     })
@@ -281,6 +282,13 @@ describe('upcomingInvoices', () => {
     expect(unpaid).toMatchObject({ cardCents: 15000, pendingCardCents: 5000, expenseCents: 10000 })
     expect(summarizeEntries(entries, () => true).expenseCents).toBe(15000)
     expect(totalsByCategory(entries)).toEqual({ Educação: 15000 })
+    // pago em novembro para a fatura de dezembro: sai em novembro, abate em dezembro
+    const early = card({ ...credit, date: '2026-11-26' })
+    const nov = summarizeEntries(monthEntries([tx, early], '2026-11'), () => false)
+    expect(nov).toMatchObject({ cardCents: 0, expenseCents: 10000 })
+    const decEntries = monthEntries([tx, early], '2026-12')
+    expect(summarizeEntries(decEntries, () => false).expenseCents).toBe(0)
+    expect(summarizeEntries(decEntries, () => true).expenseCents).toBe(5000)
     // quitada antes do vencimento: some dos vencimentos
     const all = card({ ...credit, amountCents: 15000 })
     expect(upcomingInvoices([tx, all], cards, '2026-12-05')[0].dueDate).toBe('2027-01-10')

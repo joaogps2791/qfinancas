@@ -61,6 +61,11 @@ export default function Transactions(): React.JSX.Element {
             <> ({formatBRL(summary.pendingCardCents)} a pagar, fora do saldo)</>
           )}
         </span>
+        {summary.prepaidCents > 0 && (
+          <span>
+            Pago antecipado <strong>{formatBRL(summary.prepaidCents)}</strong>
+          </span>
+        )}
         <span>
           Saldo{' '}
           <strong className={summary.balanceCents < 0 ? 'negative' : undefined}>

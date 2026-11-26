@@ -60,6 +60,34 @@ describe('dueItems', () => {
     expect(late[0]).toMatchObject({ dueDate: '2026-11-10', days: -9 })
   })
 
+  it('com outro mês escolhido, mostra o que vence nele e o que ficou atrasado', () => {
+    const dec: Transaction[] = [
+      ...transactions,
+      { ...transactions[0], id: 't2', invoiceDate: '2026-12-22', amountCents: 5000 }
+    ] as Transaction[]
+    // dezembro: a fatura e a conta de dezembro; nada de novembro (ainda não venceu)
+    const items = dueItems(dec, cards, [bill()], '2026-11-19', '2026-12')
+    expect(items.map((i) => [i.title, i.dueDate])).toEqual([
+      ['Conta de luz', '2026-12-20'],
+      ['Fatura Nubank', '2026-12-22']
+    ])
+    // janeiro: nada vence (a fatura de dezembro não aparece mais)
+    const jan = dueItems(dec, cards, [bill({ endMonth: '2026-12' })], '2026-11-19', '2027-01')
+    expect(jan).toEqual([])
+    // conta e fatura de novembro atrasadas continuam aparecendo em janeiro
+    const late = dueItems(
+      dec,
+      cards,
+      [bill({ dueDay: 10, endMonth: '2026-12' })],
+      '2026-11-25',
+      '2027-01'
+    )
+    expect(late.map((i) => [i.title, i.days])).toEqual([
+      ['Conta de luz', -15],
+      ['Fatura Nubank', -3]
+    ])
+  })
+
   it('ignora conta desativada', () => {
     expect(dueItems([], [], [bill({ active: false })], '2026-11-19')).toEqual([])
   })

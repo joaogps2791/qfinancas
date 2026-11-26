@@ -60,7 +60,7 @@ export default function Cards(): React.JSX.Element {
 
   // Sem useMemo: o React Compiler já memoriza (e reclama do manual por causa do saveCard abaixo).
   const entries = monthEntries(transactions, month).filter(
-    (e) => e.transaction.kind === 'card' && e.transaction.card === card?.name
+    (e) => e.transaction.kind === 'card' && e.transaction.card === card?.name && !e.prepayment
   )
   const total = entries.reduce((sum, e) => sum + e.amountCents, 0)
   const first = entries[0]?.transaction
