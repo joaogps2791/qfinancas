@@ -362,6 +362,20 @@ export function upcomingInvoices(
 }
 
 /**
+ * Limite usado do cartão, como no banco: tudo que ainda não foi pago, ou seja, as faturas em
+ * aberto (a deste mês e as futuras, com as parcelas que faltam), já descontados os créditos.
+ */
+export const limitUsedCents = (
+  transactions: Transaction[],
+  cards: InvoiceCard[],
+  card: string,
+  today: string
+): number =>
+  openInvoices(transactions, cards, today)
+    .filter((invoice) => invoice.card === card)
+    .reduce((sum, invoice) => sum + invoice.totalCents, 0)
+
+/**
  * Faturas em aberto (com saldo a pagar e não pagas) de cada cartão usado nos lançamentos: a deste
  * mês, mesmo vencida, e as futuras. O vencimento é o dia cadastrado no cartão; sem ele, o da
  * fatura escolhida em cada compra.

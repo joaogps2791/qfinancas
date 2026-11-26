@@ -10,6 +10,7 @@ import {
   formatMonthShort,
   formatPercent,
   invoicePaidBy,
+  limitUsedCents,
   monthEntries,
   monthlySeries,
   parseAmountToCents,
@@ -292,6 +293,14 @@ describe('upcomingInvoices', () => {
     // quitada antes do vencimento: some dos vencimentos
     const all = card({ ...credit, amountCents: 15000 })
     expect(upcomingInvoices([tx, all], cards, '2026-12-05')[0].dueDate).toBe('2027-01-10')
+  })
+  it('limite usado soma todas as faturas em aberto, com as parcelas futuras', () => {
+    // 300,00 em 2x: 150,00 em dezembro e 150,00 em janeiro
+    expect(limitUsedCents([tx], cards, 'Nubank', '2026-12-05')).toBe(30000)
+    // dezembro paga: sobra só a parcela de janeiro
+    const paidDec = [{ name: 'Nubank', dueDay: 10, paidInvoices: ['2026-12'] }]
+    expect(limitUsedCents([tx], paidDec, 'Nubank', '2026-12-05')).toBe(15000)
+    expect(limitUsedCents([tx], cards, 'Itaú', '2026-12-05')).toBe(0)
   })
   it('só a fatura paga conta nas saídas; mês passado conta como pago', () => {
     const paid = invoicePaidBy([{ name: 'Nubank', paidInvoices: ['2027-01'] }], '2026-12-20')

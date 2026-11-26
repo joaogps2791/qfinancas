@@ -15,6 +15,7 @@ import {
   formatBRL,
   formatDayMonth,
   invoicePaidBy,
+  limitUsedCents,
   monthEntries,
   monthKey,
   todayISO
@@ -135,12 +136,13 @@ export default function Cards(): React.JSX.Element {
   const [year, monthNumber] = month.split('-').map(Number)
   const lastDay = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate()
   const dueDate = card.dueDay ? `${month}-${pad(Math.min(card.dueDay, lastDay))}` : null
-  // shortcut: "usado" é a fatura deste mês; parcelas futuras não entram, até haver o limite real do banco
-  const used = Math.min(total, card.limitCents ?? 0)
   const go = (step: number): void =>
     setSelected(cards[(index + step + cards.length) % cards.length].name)
-  // Fatura paga entra nas saídas; antes disso fica como "a pagar" nos vencimentos.
   const today = todayISO()
+  // Limite usado: tudo que falta pagar no cartão (todas as faturas em aberto), não só a do mês.
+  const used = limitUsedCents(transactions, cards, card.name, today)
+  const limit = card.limitCents ?? 0
+  // Fatura paga entra nas saídas; antes disso fica como "a pagar" nos vencimentos.
   const paid = invoicePaidBy(cards, today)(card.name, month)
   const paidList = card.paidInvoices ?? []
   const togglePaid = (): void => {
@@ -262,21 +264,23 @@ export default function Cards(): React.JSX.Element {
             </Button>
           </div>
         </div>
-        {card.limitCents ? (
+        {limit ? (
           <div className="invoice-summary__limit">
             <div
               className="progress"
               role="progressbar"
-              aria-label="Limite usado nesta fatura"
+              aria-label="Limite usado no cartão (todas as faturas em aberto)"
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-valuenow={Math.round((used / card.limitCents) * 100)}
+              aria-valuenow={Math.round(Math.min(used / limit, 1) * 100)}
             >
-              <span style={{ width: `${(used / card.limitCents) * 100}%` }} />
+              <span style={{ width: `${Math.min(used / limit, 1) * 100}%` }} />
             </div>
             <span className="muted small">
-              {formatBRL(used)} usados · {formatBRL(card.limitCents - used)} disponíveis de{' '}
-              {formatBRL(card.limitCents)}
+              {formatBRL(used)} do limite usados em todas as faturas em aberto ·{' '}
+              {used > limit
+                ? `${formatBRL(used - limit)} acima do limite de ${formatBRL(limit)}`
+                : `${formatBRL(limit - used)} disponíveis de ${formatBRL(limit)}`}
             </span>
           </div>
         ) : null}
