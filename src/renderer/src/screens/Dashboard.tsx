@@ -44,7 +44,7 @@ import Statement from '../components/Statement'
 import { contributionsInMonth } from '../domain/investments'
 import { budgetRows } from '../domain/planning'
 import { dueItems, type DueItem } from '../domain/alerts'
-import { useGoals } from '../data/portfolio'
+import { useGoals, usePortfolio } from '../data/portfolio'
 import { BudgetList, GoalItem } from '../components/Planning'
 
 type Metric = 'expenseCents' | 'incomeCents' | 'balanceCents'
@@ -347,7 +347,7 @@ export default function Dashboard(): React.JSX.Element {
   const now = series[series.length - 1]
   const before = series[series.length - 2]
   const invested = useInvestedCents(month)
-  const investedBefore = useInvestedCents(before.month)
+  const portfolio = usePortfolio()
   const goal = useApp((s) =>
     (s.settings?.contributionTargets ?? []).reduce((sum, t) => sum + t.monthlyCents, 0)
   )
@@ -395,11 +395,19 @@ export default function Dashboard(): React.JSX.Element {
           spark={spark('expenseCents')}
         />
         <StatCard
-          label="Investido"
+          label="Investimentos"
           icon={<PiggyBank size={16} />}
-          valueCents={invested}
-          change={percentChange(invested, investedBefore)}
-          note={goal ? `de ${formatBRL(goal)} planejados` : undefined}
+          valueCents={portfolio.valueCents}
+          change={
+            portfolio.costCents
+              ? (portfolio.valueCents - portfolio.costCents) / portfolio.costCents
+              : null
+          }
+          note={
+            invested || goal
+              ? `${formatBRL(invested)} aportados no mês${goal ? ` de ${formatBRL(goal)} planejados` : ''}`
+              : undefined
+          }
         />
       </section>
 

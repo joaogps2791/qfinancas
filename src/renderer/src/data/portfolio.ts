@@ -86,6 +86,10 @@ export type Portfolio = {
   fixed: FixedRow[]
   quoteTickers: string[]
   quotes: QuotesResult
+  /** carteira inteira hoje (renda variável pela cotação, renda fixa pela estimativa) */
+  valueCents: number
+  /** quanto custou o que ainda está na carteira */
+  costCents: number
   loading: boolean
   refresh: () => void
   ratesError: string | null
@@ -114,7 +118,25 @@ export function usePortfolio(enabled = true): Portfolio {
     .map((f) => ({ ...f, estimate: estimateFixedIncome(f, rates, today) }))
     .sort((a, b) => a.startDate.localeCompare(b.startDate))
 
-  return { open, assets, fixed, quoteTickers, quotes, loading, refresh, ratesError }
+  const valueCents =
+    assets.reduce((s, a) => s + a.valueCents, 0) +
+    fixed.reduce((s, f) => s + f.estimate.grossCents, 0)
+  const costCents =
+    assets.reduce((s, a) => s + a.totalCostCents, 0) +
+    fixed.reduce((s, f) => s + f.investedCents, 0)
+
+  return {
+    open,
+    assets,
+    fixed,
+    quoteTickers,
+    quotes,
+    valueCents,
+    costCents,
+    loading,
+    refresh,
+    ratesError
+  }
 }
 
 /** Valor de hoje do ativo ligado a uma meta ("ticker:HGLG11" ou "fixed:{id}"); null se sumiu. */

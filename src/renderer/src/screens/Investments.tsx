@@ -91,14 +91,19 @@ export default function Investments(): React.JSX.Element {
   const today = todayISO()
   const [dialog, setDialog] = useState<Dialog>(null)
   const [pluggy, setPluggy] = useState<PluggyInvestments | null>(null)
-  const { open, assets, fixed, quoteTickers, quotes, loading, refresh, ratesError } = usePortfolio()
+  const {
+    open,
+    assets,
+    fixed,
+    quoteTickers,
+    quotes,
+    valueCents: totalValue,
+    costCents: totalCost,
+    loading,
+    refresh,
+    ratesError
+  } = usePortfolio()
 
-  const totalValue =
-    assets.reduce((s, a) => s + a.valueCents, 0) +
-    fixed.reduce((s, f) => s + f.estimate.grossCents, 0)
-  const totalCost =
-    assets.reduce((s, a) => s + a.totalCostCents, 0) +
-    fixed.reduce((s, f) => s + f.investedCents, 0)
   const dividends12m = dividendsByMonth(dividends, monthKey(today), 12).reduce(
     (s, d) => s + d.cents,
     0
