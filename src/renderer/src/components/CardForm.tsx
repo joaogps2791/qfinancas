@@ -111,7 +111,8 @@ export default function CardForm({
       color: preview.colors[0],
       ...(closingDay ? { closingDay } : {}),
       ...(dueDay ? { dueDay } : {}),
-      ...(limitCents ? { limitCents } : {})
+      ...(limitCents ? { limitCents } : {}),
+      ...(card?.paidInvoices ? { paidInvoices: card.paidInvoices } : {})
     }
     setSaving(true)
     setError(null)

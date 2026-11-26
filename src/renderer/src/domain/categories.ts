@@ -22,6 +22,8 @@ export type Card = {
   last4?: string
   nickname?: string
   limitCents?: number
+  /** meses (YYYY-MM) das faturas marcadas como pagas; só a fatura paga conta nas saídas */
+  paidInvoices?: string[]
 }
 
 export type Settings = {

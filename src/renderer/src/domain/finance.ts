@@ -222,22 +222,44 @@ export function monthEntries(transactions: Transaction[], key: string): MonthEnt
 export type MonthSummary = {
   incomeCents: number
   cashCents: number
+  /** tudo que caiu nas faturas do mês, pagas ou não */
   cardCents: number
+  /** parte de `cardCents` em faturas ainda não pagas (fica fora das saídas) */
+  pendingCardCents: number
   expenseCents: number
   balanceCents: number
 }
 
-export function summarizeEntries(entries: MonthEntry[]): MonthSummary {
+/**
+ * Fatura paga: marcada no cartão, ou de mês anterior ao atual (o histórico de antes deste
+ * controle continua contando como pago).
+ */
+export const invoicePaidBy =
+  (cards: { name: string; paidInvoices?: string[] }[], today: string) =>
+  (card: string, month: string): boolean =>
+    month < monthKey(today) || !!cards.find((c) => c.name === card)?.paidInvoices?.includes(month)
+
+/** Sem `paid`, toda fatura conta como paga (relatórios de gasto). */
+export function summarizeEntries(
+  entries: MonthEntry[],
+  paid?: (card: string) => boolean
+): MonthSummary {
   const total = (kind: Transaction['kind']): number =>
     entries.filter((e) => e.transaction.kind === kind).reduce((sum, e) => sum + e.amountCents, 0)
   const incomeCents = total('income')
   const cashCents = total('cash')
   const cardCents = total('card')
-  const expenseCents = cashCents + cardCents
+  const pendingCardCents = paid
+    ? entries
+        .filter((e) => e.transaction.kind === 'card' && !paid(e.transaction.card))
+        .reduce((sum, e) => sum + e.amountCents, 0)
+    : 0
+  const expenseCents = cashCents + cardCents - pendingCardCents
   return {
     incomeCents,
     cashCents,
     cardCents,
+    pendingCardCents,
     expenseCents,
     balanceCents: incomeCents - expenseCents
   }
@@ -278,33 +300,52 @@ export function suggestInvoiceDate(
 export type UpcomingInvoice = { card: string; dueDate: string; totalCents: number; count: number }
 
 /**
- * Próxima fatura de cada cartão com dia de vencimento: a do mês atual se ainda não venceu,
- * senão a do mês seguinte. Fatura vazia não entra.
+ * Próxima fatura em aberto (com compras e não paga) de cada cartão usado nos lançamentos: a
+ * deste mês, mesmo vencida, ou uma futura. O vencimento é o dia cadastrado no cartão; sem ele,
+ * o da fatura escolhida em cada compra.
  */
 export function upcomingInvoices(
   transactions: Transaction[],
-  cards: { name: string; dueDay?: number }[],
+  cards: { name: string; dueDay?: number; paidInvoices?: string[] }[],
   today: string
 ): UpcomingInvoice[] {
-  const result: UpcomingInvoice[] = []
-  for (const card of cards) {
-    if (!card.dueDay) continue
-    for (const offset of [0, 1]) {
-      const key = shiftMonthKey(monthKey(today), offset)
-      const [year, month] = key.split('-').map(Number)
-      const dueDate = `${key}-${pad(Math.min(card.dueDay, lastDayOf(year, month)))}`
-      if (dueDate < today) continue
-      const entries = monthEntries(transactions, key).filter(
-        (e) => e.transaction.kind === 'card' && e.transaction.card === card.name
-      )
-      if (entries.length) {
-        const totalCents = entries.reduce((sum, e) => sum + e.amountCents, 0)
-        result.push({ card: card.name, dueDate, totalCents, count: entries.length })
+  const byName = new Map(cards.map((c) => [c.name, c]))
+  const thisMonth = monthKey(today)
+  const invoices = new Map<string, UpcomingInvoice>()
+  for (const transaction of transactions) {
+    if (transaction.kind !== 'card') continue
+    const card = byName.get(transaction.card)
+    for (const item of expandInstallments(transaction)) {
+      const [year, month] = item.statementMonth.split('-').map(Number)
+      // shortcut: sem dia no cartão, compras do mesmo mês com vencimentos diferentes podem se dividir
+      const dueDate = card?.dueDay
+        ? `${item.statementMonth}-${pad(Math.min(card.dueDay, lastDayOf(year, month)))}`
+        : item.statementDate
+      if (card?.paidInvoices?.includes(item.statementMonth)) continue
+      // de meses anteriores conta como paga (ver invoicePaidBy)
+      if (item.statementMonth < thisMonth) continue
+      const key = `${transaction.card}|${item.statementMonth}`
+      const invoice = invoices.get(key)
+      if (!invoice) {
+        invoices.set(key, {
+          card: transaction.card,
+          dueDate,
+          totalCents: item.installmentCents,
+          count: 1
+        })
+        continue
       }
-      break
+      invoice.totalCents += item.installmentCents
+      invoice.count++
+      if (dueDate < invoice.dueDate) invoice.dueDate = dueDate
     }
   }
-  return result.sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+  const next = new Map<string, UpcomingInvoice>()
+  for (const invoice of invoices.values()) {
+    const current = next.get(invoice.card)
+    if (!current || invoice.dueDate < current.dueDate) next.set(invoice.card, invoice)
+  }
+  return [...next.values()].sort((a, b) => a.dueDate.localeCompare(b.dueDate))
 }
 
 // ---------- Série mensal (gráfico de fluxo de caixa) ----------
@@ -315,11 +356,13 @@ export type MonthPoint = MonthSummary & { month: string }
 export function monthlySeries(
   transactions: Transaction[],
   lastMonth: string,
-  count: number
+  count: number,
+  paid?: (card: string, month: string) => boolean
 ): MonthPoint[] {
   return Array.from({ length: count }, (_, i) => {
     const month = shiftMonthKey(lastMonth, i - count + 1)
-    return { month, ...summarizeEntries(monthEntries(transactions, month)) }
+    const paidIn = paid && ((card: string): boolean => paid(card, month))
+    return { month, ...summarizeEntries(monthEntries(transactions, month), paidIn) }
   })
 }
 

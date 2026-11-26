@@ -9,6 +9,7 @@ import {
   formatMonth,
   formatMonthShort,
   formatPercent,
+  invoicePaidBy,
   monthEntries,
   monthlySeries,
   parseAmountToCents,
@@ -184,6 +185,7 @@ describe('totais do mês', () => {
       incomeCents: 500000,
       cashCents: 30000,
       cardCents: 33334,
+      pendingCardCents: 0,
       expenseCents: 63334,
       balanceCents: 436666
     })
@@ -251,13 +253,44 @@ describe('upcomingInvoices', () => {
       { card: 'Nubank', dueDate: '2026-12-10', totalCents: 15000, count: 1 }
     ])
   })
-  it('depois do vencimento passa para a do mês seguinte', () => {
+  it('fatura vencida e não paga continua aparecendo (atrasada)', () => {
     expect(upcomingInvoices([tx], cards, '2026-12-15')).toEqual([
+      { card: 'Nubank', dueDate: '2026-12-10', totalCents: 15000, count: 1 }
+    ])
+  })
+  it('marcada como paga, passa para a do mês seguinte', () => {
+    const paidCards = [{ name: 'Nubank', dueDay: 10, paidInvoices: ['2026-12'] }]
+    expect(upcomingInvoices([tx], paidCards, '2026-12-15')).toEqual([
       { card: 'Nubank', dueDate: '2027-01-10', totalCents: 15000, count: 1 }
     ])
   })
+  it('só a fatura paga conta nas saídas; mês passado conta como pago', () => {
+    const paid = invoicePaidBy([{ name: 'Nubank', paidInvoices: ['2027-01'] }], '2026-12-20')
+    const dec = summarizeEntries(monthEntries([tx], '2026-12'), (c) => paid(c, '2026-12'))
+    expect(dec).toMatchObject({ cardCents: 15000, pendingCardCents: 15000, expenseCents: 0 })
+    const jan = summarizeEntries(monthEntries([tx], '2027-01'), (c) => paid(c, '2027-01'))
+    expect(jan).toMatchObject({ pendingCardCents: 0, expenseCents: 15000 })
+    expect(paid('Nubank', '2026-11')).toBe(true)
+  })
   it('fatura vazia não aparece', () => {
     expect(upcomingInvoices([tx], cards, '2027-02-11')).toEqual([])
+  })
+  it('fatura deste mês vazia não esconde a do próximo', () => {
+    const later = card({ amountCents: 9000, installments: 1, invoiceDate: '2027-01-10' })
+    expect(upcomingInvoices([later], cards, '2026-12-05')).toEqual([
+      { card: 'Nubank', dueDate: '2027-01-10', totalCents: 9000, count: 1 }
+    ])
+  })
+  it('cartão sem dia de vencimento usa o vencimento da fatura escolhida na compra', () => {
+    const itau = card({
+      card: 'Itaú',
+      amountCents: 5000,
+      installments: 1,
+      invoiceDate: '2026-12-07'
+    })
+    expect(upcomingInvoices([itau], cards, '2026-12-01')).toEqual([
+      { card: 'Itaú', dueDate: '2026-12-07', totalCents: 5000, count: 1 }
+    ])
   })
 })
 

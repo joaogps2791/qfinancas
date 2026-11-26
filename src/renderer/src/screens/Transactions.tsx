@@ -2,7 +2,13 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { FileUp, Plus } from 'lucide-react'
 import { openComposer, useApp } from '../data/store'
-import { formatBRL, monthEntries, summarizeEntries } from '../domain/finance'
+import {
+  formatBRL,
+  invoicePaidBy,
+  monthEntries,
+  summarizeEntries,
+  todayISO
+} from '../domain/finance'
 import { Button, Card } from '../components/ui'
 import MonthPicker from '../components/MonthPicker'
 import Statement from '../components/Statement'
@@ -12,7 +18,9 @@ export default function Transactions(): React.JSX.Element {
   const month = useApp((s) => s.month)
   const navigate = useNavigate()
   const entries = useMemo(() => monthEntries(transactions, month), [transactions, month])
-  const summary = summarizeEntries(entries)
+  const cards = useApp((s) => s.settings?.cards)
+  const paid = invoicePaidBy(cards ?? [], todayISO())
+  const summary = summarizeEntries(entries, (card) => paid(card, month))
   const searchRef = useRef<HTMLInputElement>(null)
   const location = useLocation()
   const focusSearch = (location.state as { focusSearch?: number } | null)?.focusSearch
@@ -49,6 +57,9 @@ export default function Transactions(): React.JSX.Element {
         </span>
         <span>
           Cartões <strong>{formatBRL(summary.cardCents)}</strong>
+          {summary.pendingCardCents > 0 && (
+            <> ({formatBRL(summary.pendingCardCents)} a pagar, fora do saldo)</>
+          )}
         </span>
         <span>
           Saldo{' '}

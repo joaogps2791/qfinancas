@@ -1,8 +1,24 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, CreditCard, Link2, Pencil, Plus, RefreshCw } from 'lucide-react'
-import { friendlyError, openComposer, useApp } from '../data/store'
-import { formatBRL, formatDayMonth, monthEntries } from '../domain/finance'
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  Link2,
+  Pencil,
+  Plus,
+  RefreshCw
+} from 'lucide-react'
+import { friendlyError, openComposer, saveCard, useApp } from '../data/store'
+import {
+  formatBRL,
+  formatDayMonth,
+  invoicePaidBy,
+  monthEntries,
+  monthKey,
+  todayISO
+} from '../domain/finance'
 import { accentOf } from '../domain/cardSkins'
 import type { Card as CardData } from '../domain/categories'
 import { compareCards, OPEN_FINANCE } from '../domain/openFinance'
@@ -42,12 +58,9 @@ export default function Cards(): React.JSX.Element {
       ?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' })
   }, [card?.name])
 
-  const entries = useMemo(
-    () =>
-      monthEntries(transactions, month).filter(
-        (e) => e.transaction.kind === 'card' && e.transaction.card === card?.name
-      ),
-    [transactions, month, card?.name]
+  // Sem useMemo: o React Compiler já memoriza (e reclama do manual por causa do saveCard abaixo).
+  const entries = monthEntries(transactions, month).filter(
+    (e) => e.transaction.kind === 'card' && e.transaction.card === card?.name
   )
   const total = entries.reduce((sum, e) => sum + e.amountCents, 0)
 
@@ -120,6 +133,14 @@ export default function Cards(): React.JSX.Element {
   const used = Math.min(total, card.limitCents ?? 0)
   const go = (step: number): void =>
     setSelected(cards[(index + step + cards.length) % cards.length].name)
+  // Fatura paga entra nas saídas; antes disso fica como "a pagar" nos vencimentos.
+  const today = todayISO()
+  const paid = invoicePaidBy(cards, today)(card.name, month)
+  const paidList = card.paidInvoices ?? []
+  const togglePaid = (): void => {
+    const next = paid ? paidList.filter((m) => m !== month) : [...paidList, month].sort()
+    saveCard({ ...card, paidInvoices: next }, card.name).catch((e) => alert(friendlyError(e)))
+  }
 
   return (
     <div className="page">
@@ -199,9 +220,26 @@ export default function Cards(): React.JSX.Element {
               {card.closingDay ? ` · fecha dia ${card.closingDay}` : ''}
             </span>
           </div>
-          <Button size="sm" icon={<Pencil size={14} />} onClick={() => setEditing('current')}>
-            Editar cartão
-          </Button>
+          <div className="invoice-summary__actions">
+            {total > 0 &&
+              (month < monthKey(today) ? (
+                <Badge tone="success">Paga</Badge>
+              ) : paid ? (
+                <>
+                  <Badge tone="success">Paga</Badge>
+                  <Button size="sm" variant="ghost" onClick={togglePaid}>
+                    Desfazer
+                  </Button>
+                </>
+              ) : (
+                <Button size="sm" variant="primary" icon={<Check size={14} />} onClick={togglePaid}>
+                  Marcar como paga
+                </Button>
+              ))}
+            <Button size="sm" icon={<Pencil size={14} />} onClick={() => setEditing('current')}>
+              Editar cartão
+            </Button>
+          </div>
         </div>
         {card.limitCents ? (
           <div className="invoice-summary__limit">

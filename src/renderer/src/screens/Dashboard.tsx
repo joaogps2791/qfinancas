@@ -27,6 +27,7 @@ import {
   formatDayMonth,
   formatMonth,
   formatMonthShort,
+  invoicePaidBy,
   monthEntries,
   monthlySeries,
   percentChange,
@@ -342,7 +343,12 @@ export default function Dashboard(): React.JSX.Element {
   const transactions = useApp((s) => s.transactions)
   const month = useApp((s) => s.month)
 
-  const series = useMemo(() => monthlySeries(transactions, month, 6), [transactions, month])
+  const cards = useApp((s) => s.settings?.cards)
+  // Cartão pesa nas saídas só quando a fatura é paga; a em aberto aparece nos vencimentos.
+  const series = useMemo(
+    () => monthlySeries(transactions, month, 6, invoicePaidBy(cards ?? [], todayISO())),
+    [transactions, month, cards]
+  )
   const entries = useMemo(() => monthEntries(transactions, month), [transactions, month])
   const now = series[series.length - 1]
   const before = series[series.length - 2]
@@ -393,6 +399,11 @@ export default function Dashboard(): React.JSX.Element {
           valueCents={now.expenseCents}
           change={percentChange(now.expenseCents, before.expenseCents)}
           spark={spark('expenseCents')}
+          note={
+            now.pendingCardCents
+              ? `+ ${formatBRL(now.pendingCardCents)} em fatura a pagar`
+              : undefined
+          }
         />
         <StatCard
           label="Investimentos"
