@@ -31,6 +31,7 @@ import { DEFAULT_NOTIFICATIONS, type NotificationSettings } from '../domain/aler
 import ThemePicker from '../components/ThemePicker'
 import CardArt from '../components/CardArt'
 import CardForm from '../components/CardForm'
+import { OPEN_FINANCE } from '../domain/openFinance'
 import { parseNotes, useUpdateState } from '../data/updates'
 import { IconPicker, IconBadge } from '../components/TxIcon'
 
@@ -420,10 +421,10 @@ function IntegrationsSection(): React.JSX.Element {
         <KeyRound size={14} aria-hidden /> As chaves ficam só neste PC, criptografadas pelo Windows.
         Não vão para a nuvem.
       </p>
-      {SECRETS.map((s) => (
+      {SECRETS.filter((s) => OPEN_FINANCE || !s.key.startsWith('pluggy.')).map((s) => (
         <SecretField key={s.key} secretKey={s.key} label={s.label} hint={s.hint} />
       ))}
-      <PluggyTest />
+      {OPEN_FINANCE && <PluggyTest />}
     </Panel>
   )
 }

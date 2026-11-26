@@ -13,7 +13,7 @@ import {
   suggestInvoiceDate,
   todayISO
 } from '../domain/finance'
-import { pluggyRows } from '../domain/openFinance'
+import { OPEN_FINANCE, pluggyRows } from '../domain/openFinance'
 import type { PluggyData } from '../../../main/pluggy'
 import {
   applyMapping,
@@ -237,15 +237,21 @@ export default function Import(): React.JSX.Element {
         <div>
           <h1>Importar extrato</h1>
           <p className="muted">
-            Arquivo OFX ou CSV do banco, ou direto do Open Finance. Nada é salvo antes de você
-            conferir a prévia.
+            Arquivo OFX ou CSV do banco{OPEN_FINANCE ? ', ou direto do Open Finance' : ''}. Nada é
+            salvo antes de você conferir a prévia.
           </p>
         </div>
         <div className="page-head__actions">
           <Button onClick={() => navigate('/transacoes')}>Voltar</Button>
-          <Button icon={<CloudDownload size={16} />} disabled={fetching} onClick={fetchOpenFinance}>
-            {fetching ? 'Buscando…' : 'Buscar do Open Finance'}
-          </Button>
+          {OPEN_FINANCE && (
+            <Button
+              icon={<CloudDownload size={16} />}
+              disabled={fetching}
+              onClick={fetchOpenFinance}
+            >
+              {fetching ? 'Buscando…' : 'Buscar do Open Finance'}
+            </Button>
+          )}
           <Button variant="primary" icon={<FileUp size={18} />} onClick={open}>
             {file && !openFinance ? 'Trocar arquivo' : 'Escolher arquivo'}
           </Button>

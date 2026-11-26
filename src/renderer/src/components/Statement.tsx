@@ -1,9 +1,16 @@
 import { useMemo, useState } from 'react'
 import { Inbox, Pencil, Search, Trash2 } from 'lucide-react'
-import { deleteTransaction, friendlyError, openComposer, useApp } from '../data/store'
+import {
+  deleteTransaction,
+  deleteTransactions,
+  friendlyError,
+  openComposer,
+  setTransactionsCategory,
+  useApp
+} from '../data/store'
 import { normalizeText } from '../domain/categories'
 import { formatBRL, formatDayMonth, type MonthEntry, type Transaction } from '../domain/finance'
-import { Button, EmptyState, Menu, Modal, Pills } from './ui'
+import { Button, EmptyState, Menu, Modal, Pills, Select } from './ui'
 import { IconBadge } from './TxIcon'
 import { resolveTxIcon } from './iconData'
 
@@ -61,6 +68,9 @@ export default function Statement({
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
   const [deleting, setDeleting] = useState<Transaction | null>(null)
+  // Seleção só no extrato completo (aba Transações): editar ou excluir vários de uma vez.
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
 
   const visible = useMemo(() => {
     const list = entries.filter(
@@ -68,6 +78,35 @@ export default function Statement({
     )
     return limit ? list.slice(0, limit) : list
   }, [entries, filter, query, limit])
+
+  // Só conta o que está à vista (mês, filtro e busca atuais).
+  const visibleTx = [...new Map(visible.map((e) => [e.transaction.id, e.transaction])).values()]
+  const chosen = visibleTx.filter((t) => selected.has(t.id))
+  const allChosen = visibleTx.length > 0 && chosen.length === visibleTx.length
+  const toggle = (id: string): void =>
+    setSelected((s) => {
+      const next = new Set(s)
+      if (!next.delete(id)) next.add(id)
+      return next
+    })
+  const toggleAll = (): void =>
+    setSelected(allChosen ? new Set() : new Set(visibleTx.map((t) => t.id)))
+  const withCategory = chosen.filter((t) => t.kind !== 'income')
+  const changeCategory = (category: string): void => {
+    if (!category) return
+    setTransactionsCategory(
+      withCategory.map((t) => t.id),
+      category
+    )
+      .then(() => setSelected(new Set()))
+      .catch((e) => alert(friendlyError(e)))
+  }
+  const confirmBulkDelete = (): void => {
+    deleteTransactions(chosen.map((t) => t.id))
+      .then(() => setSelected(new Set()))
+      .catch((e) => alert(friendlyError(e)))
+    setBulkDeleting(false)
+  }
 
   const confirmDelete = (): void => {
     if (!deleting) return
@@ -85,6 +124,19 @@ export default function Statement({
             value={filter}
             onChange={setFilter}
           />
+          {visibleTx.length > 0 && (
+            <label className="statement__select-all">
+              <input
+                type="checkbox"
+                checked={allChosen}
+                ref={(el) => {
+                  if (el) el.indeterminate = chosen.length > 0 && !allChosen
+                }}
+                onChange={toggleAll}
+              />
+              Selecionar todos
+            </label>
+          )}
           <label className="search">
             <Search size={16} aria-hidden />
             <input
@@ -96,6 +148,32 @@ export default function Statement({
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
+        </div>
+      )}
+
+      {withFilters && chosen.length > 0 && (
+        <div className="statement__bulk" role="region" aria-label="Ações da seleção">
+          <strong>{chosen.length === 1 ? '1 selecionado' : `${chosen.length} selecionados`}</strong>
+          <Select
+            label="Mudar categoria"
+            options={[
+              { value: '', label: withCategory.length ? 'Escolha…' : 'Só entradas selecionadas' },
+              ...categories.map((c) => c.name)
+            ]}
+            value=""
+            disabled={!withCategory.length}
+            onChange={(e) => changeCategory(e.target.value)}
+          />
+          <Button
+            variant="danger"
+            icon={<Trash2 size={16} />}
+            onClick={() => setBulkDeleting(true)}
+          >
+            Excluir
+          </Button>
+          <Button variant="ghost" onClick={() => setSelected(new Set())}>
+            Limpar seleção
+          </Button>
         </div>
       )}
 
@@ -115,7 +193,19 @@ export default function Statement({
             const t = entry.transaction
             const income = t.kind === 'income'
             return (
-              <li key={`${t.id}-${entry.installmentNumber ?? 0}`} className="statement__row">
+              <li
+                key={`${t.id}-${entry.installmentNumber ?? 0}`}
+                className={withFilters ? 'statement__row statement__row--select' : 'statement__row'}
+              >
+                {withFilters && (
+                  <input
+                    type="checkbox"
+                    className="statement__check"
+                    aria-label={`Selecionar ${t.description}`}
+                    checked={selected.has(t.id)}
+                    onChange={() => toggle(t.id)}
+                  />
+                )}
                 <IconBadge icon={resolveTxIcon(t, categories)} />
                 <div className="statement__main">
                   <strong>{t.description}</strong>
@@ -146,6 +236,34 @@ export default function Statement({
           })}
         </ul>
       )}
+
+      <Modal
+        open={bulkDeleting}
+        onClose={() => setBulkDeleting(false)}
+        title={
+          chosen.length === 1 ? 'Excluir 1 lançamento?' : `Excluir ${chosen.length} lançamentos?`
+        }
+        footer={
+          <>
+            <Button onClick={() => setBulkDeleting(false)}>Cancelar</Button>
+            <Button variant="danger" onClick={confirmBulkDelete}>
+              Excluir
+            </Button>
+          </>
+        }
+      >
+        <p>
+          {formatBRL(chosen.reduce((s, t) => s + t.amountCents, 0))} em lançamentos vão ser
+          apagados.
+          {chosen.some((t) => t.kind === 'card' && t.installments > 1)
+            ? ' Compras parceladas somem com todas as parcelas.'
+            : ''}
+          {chosen.some((t) => 'occurrenceTotal' in t && t.occurrenceTotal)
+            ? ' Nas séries, só os meses selecionados; os outros continuam.'
+            : ''}{' '}
+          Isso não pode ser desfeito.
+        </p>
+      </Modal>
 
       <Modal
         open={!!deleting}

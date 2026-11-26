@@ -251,6 +251,30 @@ export async function deleteTransaction(id: string): Promise<void> {
   await deleteDoc(doc(db, ...userPath(requireUid(), 'transactions', id)))
 }
 
+/** Seleção em Transações: aplica a mesma mudança (ou exclusão) a vários lançamentos, em lotes. */
+async function batchTransactions(
+  ids: string[],
+  apply: (batch: ReturnType<typeof writeBatch>, ref: ReturnType<typeof doc>) => void
+): Promise<void> {
+  const uid = requireUid()
+  for (let start = 0; start < ids.length; start += 450) {
+    const batch = writeBatch(db)
+    for (const id of ids.slice(start, start + 450)) {
+      apply(batch, doc(db, ...userPath(uid, 'transactions', id)))
+    }
+    await batch.commit()
+  }
+}
+
+export const deleteTransactions = (ids: string[]): Promise<void> =>
+  batchTransactions(ids, (batch, ref) => batch.delete(ref))
+
+/** Só à vista e cartão têm categoria; entradas usam o tipo de entrada. */
+export const setTransactionsCategory = (ids: string[], category: string): Promise<void> =>
+  batchTransactions(ids, (batch, ref) =>
+    batch.update(ref, { category, updatedAt: serverTimestamp() })
+  )
+
 // ---------- Investimentos ----------
 
 type WithoutId<T> = Omit<T, 'id'>

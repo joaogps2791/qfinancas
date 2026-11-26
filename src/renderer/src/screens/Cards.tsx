@@ -5,7 +5,7 @@ import { friendlyError, openComposer, useApp } from '../data/store'
 import { formatBRL, formatDayMonth, monthEntries } from '../domain/finance'
 import { accentOf } from '../domain/cardSkins'
 import type { Card as CardData } from '../domain/categories'
-import { compareCards } from '../domain/openFinance'
+import { compareCards, OPEN_FINANCE } from '../domain/openFinance'
 import type { PluggyCards } from '../../../main/pluggy'
 import { Badge, Button, Card, EmptyState, Modal } from '../components/ui'
 import MonthPicker from '../components/MonthPicker'
@@ -82,7 +82,7 @@ export default function Cards(): React.JSX.Element {
       )}
     </Modal>
   )
-  const fromOpenFinance = (
+  const fromOpenFinance = OPEN_FINANCE && (
     <Button icon={<Link2 size={16} />} onClick={() => setEditing('openFinance')}>
       Do Open Finance
     </Button>

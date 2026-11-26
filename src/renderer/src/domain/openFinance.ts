@@ -1,4 +1,7 @@
 // Open Finance (Meu Pluggy) → prévia da importação, carteira de investimentos e cartões.
+
+/** Desligado a pedido do João (26/11/2026): some das telas, mas o código fica para religar. */
+export const OPEN_FINANCE = false
 import type { PluggyCard, PluggyData, PluggyInvestment } from '../../../main/pluggy'
 import { normalizeText as plain, type Card } from './categories'
 import { issuerOf, type Issuer, type Network } from './cardSkins'

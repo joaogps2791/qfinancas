@@ -50,7 +50,7 @@ import {
 } from '../domain/investments'
 import type { QuotesResult } from '../../../main/market'
 import type { PluggyInvestments } from '../../../main/pluggy'
-import { compareHoldings, type HoldingDraft } from '../domain/openFinance'
+import { compareHoldings, OPEN_FINANCE, type HoldingDraft } from '../domain/openFinance'
 import {
   Badge,
   Button,
@@ -145,9 +145,11 @@ export default function Investments(): React.JSX.Element {
           >
             Atualizar cotações
           </Button>
-          <Button icon={<Link2 size={16} />} onClick={() => setDialog('openFinance')}>
-            Open Finance
-          </Button>
+          {OPEN_FINANCE && (
+            <Button icon={<Link2 size={16} />} onClick={() => setDialog('openFinance')}>
+              Open Finance
+            </Button>
+          )}
           <Button icon={<Coins size={16} />} onClick={() => setDialog('dividend')}>
             Provento
           </Button>
