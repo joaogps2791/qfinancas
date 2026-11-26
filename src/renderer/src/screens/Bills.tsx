@@ -9,12 +9,13 @@ import {
   unmarkBillPaid,
   useApp
 } from '../data/store'
-import { billDueDate, type Bill } from '../domain/alerts'
+import { billDueDate, billRunsIn, type Bill } from '../domain/alerts'
 import {
   centsToInput,
   daysUntil,
   formatBRL,
   formatDayMonth,
+  formatMonth,
   monthKey,
   parseAmountToCents,
   PAYMENT_METHODS,
@@ -40,6 +41,7 @@ type Status = { label: string; tone: 'success' | 'warning' | 'danger' | 'neutral
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`
 
 function statusOf(bill: Bill, month: string, today: string): Status {
+  if (bill.endMonth && month > bill.endMonth) return { label: 'Encerrada', tone: 'neutral' }
   if (bill.paid?.[month]) return { label: 'Paga', tone: 'success' }
   const due = billDueDate(bill, month)
   const days = daysUntil(due, today)
@@ -56,8 +58,17 @@ const billFields = (bill: Bill): Omit<Bill, 'id' | 'paid'> => ({
   dueDay: bill.dueDay,
   category: bill.category,
   paymentMethod: bill.paymentMethod,
-  active: bill.active
+  active: bill.active,
+  endMonth: bill.endMonth ?? null
 })
+
+/** Quantos meses ainda faltam pagar (o deste mês conta se não foi pago). */
+const remaining = (bill: Bill, month: string): number => {
+  if (!bill.endMonth || month > bill.endMonth) return 0
+  const [y1, m1] = month.split('-').map(Number)
+  const [y2, m2] = bill.endMonth.split('-').map(Number)
+  return (y2 - y1) * 12 + (m2 - m1) + 1 - (bill.paid?.[month] ? 1 : 0)
+}
 
 export default function Bills(): React.JSX.Element {
   const bills = useApp((s) => s.bills)
@@ -81,9 +92,11 @@ export default function Bills(): React.JSX.Element {
 
   const sorted = [...bills].sort(
     (a, b) =>
-      Number(b.active) - Number(a.active) || a.dueDay - b.dueDay || a.name.localeCompare(b.name)
+      Number(billRunsIn(b, month)) - Number(billRunsIn(a, month)) ||
+      a.dueDay - b.dueDay ||
+      a.name.localeCompare(b.name)
   )
-  const active = bills.filter((b) => b.active)
+  const active = bills.filter((b) => billRunsIn(b, month))
   const total = active.reduce((s, b) => s + b.amountCents, 0)
   const paid = active.filter((b) => b.paid?.[month]).reduce((s, b) => s + b.amountCents, 0)
 
@@ -100,7 +113,9 @@ export default function Bills(): React.JSX.Element {
       <header className="page-head">
         <div>
           <h1>Contas fixas</h1>
-          <p className="muted">Aluguel, luz, internet: o que vence todo mês.</p>
+          <p className="muted">
+            Aluguel, luz, internet, empréstimos: o que vence todo mês (com ou sem data para acabar).
+          </p>
         </div>
         <div className="page-head__actions">
           <Button variant="primary" icon={<Plus size={18} />} onClick={() => setEditing('new')}>
@@ -147,7 +162,7 @@ export default function Bills(): React.JSX.Element {
                   key={bill.id}
                   data-bill={bill.id}
                   className={[
-                    bill.active ? '' : 'is-paused',
+                    billRunsIn(bill, month) ? '' : 'is-paused',
                     highlight === bill.id ? 'is-highlight' : ''
                   ]
                     .join(' ')
@@ -158,6 +173,10 @@ export default function Bills(): React.JSX.Element {
                     <strong>{bill.name}</strong>
                     <small>
                       Todo dia {bill.dueDay} · {bill.category} · {bill.paymentMethod}
+                      {bill.endMonth &&
+                        (month > bill.endMonth
+                          ? ` · terminou em ${formatMonth(bill.endMonth).toLowerCase()}`
+                          : ` · até ${formatMonth(bill.endMonth).toLowerCase()} (${remaining(bill, month) === 1 ? 'falta 1' : `faltam ${remaining(bill, month)}`})`)}
                     </small>
                   </div>
                   <strong className="bill-list__amount">{formatBRL(bill.amountCents)}</strong>
@@ -169,7 +188,7 @@ export default function Bills(): React.JSX.Element {
                     )}
                   </span>
                   <div className="bill-list__action">
-                    {bill.active &&
+                    {billRunsIn(bill, month) &&
                       (isPaid ? (
                         <Button
                           size="sm"
@@ -250,7 +269,8 @@ function BillForm({ bill, onDone }: { bill?: Bill; onDone: () => void }): React.
     dueDay: bill ? String(bill.dueDay) : '10',
     category: bill?.category ?? (names.includes('Moradia') ? 'Moradia' : (names[0] ?? '')),
     paymentMethod: bill?.paymentMethod ?? 'Boleto',
-    active: bill?.active ?? true
+    active: bill?.active ?? true,
+    endMonth: bill?.endMonth ?? ''
   })
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -265,6 +285,9 @@ function BillForm({ bill, onDone }: { bill?: Bill; onDone: () => void }): React.
     if (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 31) {
       return setError('O dia de vencimento vai de 1 a 31.')
     }
+    if (form.endMonth && !/^d{4}-d{2}$/.test(form.endMonth)) {
+      return setError('Escolha o mês e o ano da última parcela.')
+    }
     setSaving(true)
     saveBill(
       {
@@ -273,7 +296,9 @@ function BillForm({ bill, onDone }: { bill?: Bill; onDone: () => void }): React.
         dueDay,
         category: form.category,
         paymentMethod: form.paymentMethod,
-        active: form.active
+        active: form.active,
+        // null apaga a data final de uma conta que tinha (o merge ignoraria undefined)
+        endMonth: form.endMonth || null
       },
       bill?.id
     )
@@ -324,6 +349,13 @@ function BillForm({ bill, onDone }: { bill?: Bill; onDone: () => void }): React.
           onChange={(e) => set({ paymentMethod: e.target.value })}
         />
       </div>
+      <Input
+        label="Termina em (opcional)"
+        type="month"
+        hint="Empréstimo ou financiamento: o mês da última parcela. Depois dele a conta não vence mais."
+        value={form.endMonth}
+        onChange={(e) => set({ endMonth: e.target.value })}
+      />
       <Toggle
         label="Ativa"
         description="Conta pausada não aparece nos vencimentos nem gera aviso."

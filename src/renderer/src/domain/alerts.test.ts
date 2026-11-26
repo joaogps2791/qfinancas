@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { alertsToSend, billDueDate, DEFAULT_NOTIFICATIONS, dueItems, type Bill } from './alerts'
+import {
+  alertsToSend,
+  billDueDate,
+  billRunsIn,
+  DEFAULT_NOTIFICATIONS,
+  dueItems,
+  type Bill
+} from './alerts'
 import type { Transaction } from './finance'
 
 const transactions: Transaction[] = [
@@ -95,5 +102,26 @@ describe('alertsToSend', () => {
   it('conta atrasada não gera aviso', () => {
     const late = dueItems([], [], [bill({ dueDay: 10 })], '2026-11-19')
     expect(alertsToSend(late, DEFAULT_NOTIFICATIONS, new Set())).toEqual([])
+  })
+})
+
+describe('conta com data para acabar (empréstimo, financiamento)', () => {
+  it('vence até o mês da última parcela, inclusive', () => {
+    const loan = bill({ endMonth: '2026-12' })
+    expect(billRunsIn(loan, '2026-12')).toBe(true)
+    expect(billRunsIn(loan, '2027-01')).toBe(false)
+    expect(billRunsIn({ ...loan, active: false }, '2026-11')).toBe(false)
+    expect(billRunsIn(bill({ endMonth: null }), '2099-01')).toBe(true)
+  })
+
+  it('depois de paga a última parcela, some dos vencimentos', () => {
+    const last = bill({ endMonth: '2026-11', paid: { '2026-11': 'tx1' } })
+    expect(dueItems([], [], [last], '2026-11-19')).toEqual([])
+    // ainda não paga no último mês: aparece normalmente
+    expect(dueItems([], [], [bill({ endMonth: '2026-11' })], '2026-11-19')).toHaveLength(1)
+  })
+
+  it('terminada antes deste mês não vence mais', () => {
+    expect(dueItems([], [], [bill({ endMonth: '2026-10' })], '2026-11-19')).toEqual([])
   })
 })

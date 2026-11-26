@@ -22,7 +22,13 @@ export type Bill = {
   active: boolean
   /** mês (YYYY-MM) → id do lançamento criado ao marcar como paga */
   paid?: Record<string, string>
+  /** empréstimo, financiamento: mês (YYYY-MM) da última parcela; sem ele, não acaba */
+  endMonth?: string | null
 }
+
+/** A conta vence neste mês? Pausada ou depois do último mês, não. */
+export const billRunsIn = (bill: Pick<Bill, 'active' | 'endMonth'>, month: string): boolean =>
+  bill.active && (!bill.endMonth || month <= bill.endMonth)
 
 /** Fica em settings/main.notifications. */
 export type NotificationSettings = {
@@ -89,8 +95,9 @@ export function dueItems(
   }))
   const thisMonth = monthKey(today)
   for (const bill of bills) {
-    if (!bill.active) continue
-    const month = [thisMonth, shiftMonthKey(thisMonth, 1)].find((m) => !bill.paid?.[m])
+    const month = [thisMonth, shiftMonthKey(thisMonth, 1)].find(
+      (m) => billRunsIn(bill, m) && !bill.paid?.[m]
+    )
     if (!month) continue
     const dueDate = billDueDate(bill, month)
     items.push({
