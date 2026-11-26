@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CloudDownload, FileUp, Save } from 'lucide-react'
-import { addTransactions, friendlyError, updateSettings, useApp } from '../data/store'
+import { addTransactions, friendlyError, saveCard, updateSettings, useApp } from '../data/store'
 import {
   formatBRL,
   formatDateShort,
+  splitCents,
   INCOME_TYPES,
   monthKey,
   PAYMENT_METHODS,
@@ -89,13 +90,32 @@ export default function Import(): React.JSX.Element {
   )
   const chosen = preview.filter((r) => r.include)
   const totalIn = chosen.filter((r) => r.amountCents > 0).reduce((s, r) => s + r.amountCents, 0)
-  const totalOut = chosen.filter((r) => r.amountCents < 0).reduce((s, r) => s - r.amountCents, 0)
+  // Compra que entrou no meio pesa só nas parcelas que faltam.
+  const toPay = (r: ImportRow): number =>
+    r.installments && r.firstInstallment
+      ? splitCents(-r.amountCents, r.installments)
+          .slice(r.firstInstallment - 1)
+          .reduce((s, c) => s + c, 0)
+      : -r.amountCents
+  const totalOut = chosen.filter((r) => r.amountCents < 0).reduce((s, r) => s + toPay(r), 0)
+
+  // Dias de fechamento e vencimento: os que o banco informa (Open Finance) ou os do cartão.
+  const ofAccount = openFinance?.data.accounts.find((a) => a.id === openFinance.accountId)
+  const bankDays =
+    destination === 'card' && ofAccount?.closingDay && ofAccount.dueDay
+      ? { closingDay: ofAccount.closingDay, dueDay: ofAccount.dueDay }
+      : null
+  const days = bankDays ?? { closingDay: cardInfo?.closingDay, dueDay: cardInfo?.dueDay }
+  const daysChanged =
+    !!bankDays &&
+    !!cardInfo &&
+    (cardInfo.closingDay !== bankDays.closingDay || cardInfo.dueDay !== bankDays.dueDay)
 
   // Fatura sugerida pela compra mais recente e pelo fechamento do cartão.
   const latest = parsed.rows.reduce((max, r) => (r.date > max ? r.date : max), '')
   const suggestedInvoice =
-    cardInfo?.closingDay && cardInfo.dueDay && latest
-      ? suggestInvoiceDate(latest, cardInfo.closingDay, cardInfo.dueDay)
+    days.closingDay && days.dueDay && latest
+      ? suggestInvoiceDate(latest, days.closingDay, days.dueDay)
       : ''
   const invoice = invoiceDate || suggestedInvoice
 
@@ -195,6 +215,9 @@ export default function Import(): React.JSX.Element {
           ? { destination, card, invoiceDate: invoice }
           : { destination, paymentMethod }
       await addTransactions(chosen.map((row) => toTransaction(row, target)))
+      // O cartão passa a ter o fechamento e o vencimento que o banco informa.
+      if (daysChanged && cardInfo && bankDays)
+        await saveCard({ ...cardInfo, ...bankDays }, cardInfo.name)
       // Próxima busca do Open Finance começa daqui (merge: as outras contas ficam como estão).
       if (openFinance) {
         await updateSettings({ openFinanceSync: { [openFinance.accountId]: todayISO() } })
@@ -301,10 +324,12 @@ export default function Import(): React.JSX.Element {
                       setInvoiceDate('')
                     }}
                   />
-                  {openFinance && cardInfo?.closingDay && cardInfo.dueDay ? (
+                  {openFinance && days.closingDay && days.dueDay ? (
                     <p className="muted small">
-                      Cada lançamento vai para a fatura do mês em que o banco o lançou, pelo
-                      fechamento do {card}.
+                      Cada lançamento vai para a fatura em que o banco o colocou; parcelas já pagas
+                      não entram. Fechamento dia {days.closingDay} e vencimento dia {days.dueDay}
+                      {bankDays ? ', informados pelo banco' : ` do ${card}`}
+                      {daysChanged ? ` (o ${card} será atualizado com esses dias)` : ''}.
                     </p>
                   ) : (
                     <Input
@@ -427,7 +452,18 @@ export default function Import(): React.JSX.Element {
                           <td className={`num ${row.amountCents > 0 ? 'positive' : ''}`}>
                             {row.amountCents > 0 ? '+ ' : '− '}
                             {formatBRL(Math.abs(row.amountCents))}
-                            {row.installments && <small>em {row.installments}x</small>}
+                            {row.installments && (
+                              <small>
+                                {row.firstInstallment
+                                  ? `parcelas ${row.firstInstallment} a ${row.installments} de ${row.installments}`
+                                  : `em ${row.installments}x`}{' '}
+                                ·{' '}
+                                {formatBRL(
+                                  Math.round(Math.abs(row.amountCents) / row.installments)
+                                )}{' '}
+                                cada
+                              </small>
+                            )}
                           </td>
                         </tr>
                       )

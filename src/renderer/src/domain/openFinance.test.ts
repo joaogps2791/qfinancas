@@ -67,16 +67,17 @@ describe('pluggyRows', () => {
     ])
   })
 
-  it('cartão: positivo é gasto, negativo é pagamento; parcela vira a compra inteira parcelada', () => {
+  it('cartão: positivo é gasto, negativo é pagamento; parcela entra a partir dela mesma', () => {
     const rows = pluggyRows(data, 'cartao', { closingDay: 3, dueDay: 10 })
     expect(rows).toEqual([
-      // 3/5 de R$ 120 lançada em 16/11 (fatura de dez) → R$ 600 em 5x desde a fatura de out
+      // 3/5 de R$ 120 lançada em 16/11 (fatura de dez): da 3ª à 5ª, a partir de dez
       {
         date: '2026-09-03',
         description: 'Loja Exemplo',
         amountCents: -60000,
         installments: 5,
-        invoiceDate: '2026-10-10'
+        firstInstallment: 3,
+        invoiceDate: '2026-12-10'
       },
       {
         date: '2026-11-10',
@@ -315,7 +316,7 @@ describe('pluggyRows: parcelas do cartão', () => {
     transactions
   })
 
-  it('várias parcelas da mesma compra viram uma compra só, a partir da 1ª fatura', () => {
+  it('várias parcelas da mesma compra viram uma compra só, a partir da mais antiga mostrada', () => {
     const rows = pluggyRows(
       withParcels([parcel('a', '2026-11-20', 4), parcel('b', '2026-10-20', 3)]),
       'cartao',
@@ -327,10 +328,39 @@ describe('pluggyRows: parcelas do cartão', () => {
         description: 'MAGAZINE LOJA',
         amountCents: -250_000,
         installments: 10,
-        // parcela 3 lançada em 20/10 → fatura de 10/11; a 1ª foi em 10/09
-        invoiceDate: '2026-09-10'
+        // 1ª e 2ª já pagas (não entram); a 3ª foi lançada em 20/10 → fatura de 10/11
+        firstInstallment: 3,
+        invoiceDate: '2026-11-10'
       }
     ])
+  })
+
+  it('fatura e dias do banco valem mais que o cálculo pelo cartão do app', () => {
+    const bankCard: PluggyData = {
+      ...withParcels([parcel('a', '2026-11-20', 2, { invoiceDate: '2026-12-15' })]),
+      accounts: [
+        {
+          id: 'cartao',
+          itemId: 'i',
+          bank: 'Nubank',
+          name: 'Cartão',
+          type: 'CREDIT',
+          closingDay: 8,
+          dueDay: 15
+        }
+      ]
+    }
+    expect(pluggyRows(bankCard, 'cartao', { closingDay: 3, dueDay: 10 })[0]).toMatchObject({
+      firstInstallment: 2,
+      invoiceDate: '2026-12-15'
+    })
+    // sem a fatura na transação, usa os dias do banco (fecha 8, vence 15)
+    const [row] = pluggyRows(
+      { ...bankCard, transactions: [parcel('a', '2026-11-20', 2)] },
+      'cartao',
+      { closingDay: 3, dueDay: 10 }
+    )
+    expect(row.invoiceDate).toBe('2026-12-15')
   })
 
   it('usa o valor total da compra quando o banco manda', () => {

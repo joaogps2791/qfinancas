@@ -186,6 +186,13 @@ export default function TransactionForm({
         card: form.card,
         invoiceDate: form.invoiceDate,
         installments: form.recurring ? 1 : installments,
+        // compra que veio no meio do Open Finance continua começando na mesma parcela
+        ...(editing?.kind === 'card' &&
+        editing.firstInstallment &&
+        !form.recurring &&
+        editing.firstInstallment <= installments
+          ? { firstInstallment: editing.firstInstallment }
+          : {}),
         notes: form.notes.trim() || undefined
       }
     }

@@ -29,6 +29,12 @@ export type CardTransaction = Base &
     card: string
     invoiceDate: string
     installments: number
+    /**
+     * Compra que entrou no meio (Open Finance: parcelas já pagas antes não são lançadas).
+     * `amountCents` é o total da compra, `installments` o total de parcelas e `invoiceDate` a
+     * fatura desta parcela. Sem o campo, começa na 1ª.
+     */
+    firstInstallment?: number
     notes?: string
   }
 
@@ -124,19 +130,25 @@ export type Installment = {
   installmentCents: number
 }
 
-/** Uma compra parcelada vira uma parcela em cada fatura, a partir da fatura escolhida. */
+/**
+ * Uma compra parcelada vira uma parcela em cada fatura, a partir da fatura escolhida. Com
+ * `firstInstallment` (ex.: 4), a fatura escolhida é a da 4ª parcela e as anteriores não aparecem.
+ */
 export function expandInstallments(transaction: CardTransaction): Installment[] {
   const first = transaction.invoiceDate || transaction.date
-  return splitCents(transaction.amountCents, transaction.installments).map((cents, index) => {
-    const statementDate = addMonths(first, index)
-    return {
-      transaction,
-      statementDate,
-      statementMonth: monthKey(statementDate),
-      installmentNumber: index + 1,
-      installmentCents: cents
-    }
-  })
+  const start = Math.min(Math.max(transaction.firstInstallment ?? 1, 1), transaction.installments)
+  return splitCents(transaction.amountCents, transaction.installments)
+    .slice(start - 1)
+    .map((cents, index) => {
+      const statementDate = addMonths(first, index)
+      return {
+        transaction,
+        statementDate,
+        statementMonth: monthKey(statementDate),
+        installmentNumber: start + index,
+        installmentCents: cents
+      }
+    })
 }
 
 // ---------- Recorrência ----------

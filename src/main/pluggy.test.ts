@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchPluggyCards, fetchPluggyInvestments } from './pluggy'
+import { fetchPluggy, fetchPluggyCards, fetchPluggyInvestments } from './pluggy'
 
 const ITEM = '11111111-2222-3333-4444-555555555555'
 const json = (body: unknown): Response => new Response(JSON.stringify(body), { status: 200 })
@@ -102,6 +102,64 @@ describe('fetchPluggyCards', () => {
         creditLimit: 5000
       },
       expect.objectContaining({ id: 'c2', last4: undefined })
+    ])
+  })
+})
+
+describe('fetchPluggy (cartão)', () => {
+  it('põe cada transação na fatura do banco e traz fechamento e vencimento', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url.endsWith('/auth')) return json({ apiKey: 'k' })
+        if (url.includes('/items/')) return json({ connector: { name: 'Nubank' } })
+        if (url.includes('/accounts?'))
+          return json({ results: [{ id: 'cc', type: 'CREDIT', name: 'Nubank' }] })
+        if (url.includes('/bills?'))
+          return json({
+            results: [
+              {
+                id: 'b1',
+                dueDate: '2026-11-15T03:00:00.000Z',
+                billClosingDate: '2026-11-08T03:00:00.000Z'
+              },
+              {
+                id: 'b2',
+                dueDate: '2026-12-15T03:00:00.000Z',
+                billClosingDate: '2026-12-08T03:00:00.000Z'
+              }
+            ]
+          })
+        return json({
+          next: null,
+          results: [
+            {
+              id: 't1',
+              date: '2026-11-20T15:00:00.000Z',
+              description: 'Loja',
+              amount: 100,
+              type: 'DEBIT',
+              creditCardMetadata: { installmentNumber: 4, totalInstallments: 10, billId: 'b2' }
+            },
+            {
+              id: 't2',
+              date: '2026-11-21T15:00:00.000Z',
+              description: 'Café',
+              amount: 9,
+              type: 'DEBIT'
+            }
+          ]
+        })
+      })
+    )
+    const data = await fetchPluggy(
+      { clientId: 'id', clientSecret: 's', itemIds: [ITEM] },
+      '2026-11-01'
+    )
+    expect(data.accounts[0]).toMatchObject({ type: 'CREDIT', closingDay: 8, dueDay: 15 })
+    expect(data.transactions.map((t) => [t.id, t.invoiceDate])).toEqual([
+      ['t1', '2026-12-15'],
+      ['t2', undefined]
     ])
   })
 })

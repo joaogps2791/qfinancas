@@ -104,6 +104,15 @@ describe('expandInstallments', () => {
     const items = expandInstallments(card({ invoiceDate: '', installments: 1 }))
     expect(items[0].statementMonth).toBe('2026-11')
   })
+  it('compra que entrou no meio: só da parcela informada em diante, na fatura escolhida', () => {
+    const items = expandInstallments(
+      card({ installments: 5, amountCents: 50000, firstInstallment: 4 })
+    )
+    expect(items.map((i) => [i.installmentNumber, i.statementMonth, i.installmentCents])).toEqual([
+      [4, '2026-12', 10000],
+      [5, '2027-01', 10000]
+    ])
+  })
 })
 
 describe('buildRecurringSeries', () => {

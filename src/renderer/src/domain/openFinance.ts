@@ -2,7 +2,7 @@
 import type { PluggyCard, PluggyData, PluggyInvestment } from '../../../main/pluggy'
 import { normalizeText as plain, type Card } from './categories'
 import { issuerOf, type Issuer, type Network } from './cardSkins'
-import { addMonths, suggestInvoiceDate } from './finance'
+import { suggestInvoiceDate } from './finance'
 import type { ImportRow } from './importer'
 import type { AssetType, FixedIncome, Indexer, InvestmentTransaction } from './investments'
 
@@ -10,11 +10,13 @@ import type { AssetType, FixedIncome, Indexer, InvestmentTransaction } from './i
  * Converte as transações de uma conta da Pluggy. Negativo = saída, como no resto da importação.
  * - Conta: `type` DEBIT é saída e CREDIT é entrada.
  * - Cartão: valor positivo é gasto e negativo é pagamento/estorno (documentação da Pluggy).
- *   A data da linha é a da compra (bate com o que foi lançado à mão) e a fatura sai da data de
- *   lançamento e do fechamento do cartão, quando ele está configurado.
- * - Cartão parcelado: a Pluggy manda cada parcela como uma transação ("3/5" de R$ 120). Todas as
- *   parcelas da mesma compra viram UMA compra parcelada (total em 5x), como no lançamento à mão,
- *   começando na fatura da 1ª parcela.
+ *   A data da linha é a da compra (bate com o que foi lançado à mão). A fatura é a que o banco
+ *   informa; sem ela, sai da data de lançamento e dos dias de fechamento e vencimento (os do
+ *   banco ou, sem eles, os do cartão no app).
+ * - Cartão parcelado: a Pluggy manda cada parcela como uma transação ("4/10" de R$ 120). As
+ *   parcelas da mesma compra viram UMA compra parcelada, como no lançamento à mão, mas começando
+ *   na parcela mais antiga que o banco mostrou (as anteriores já foram pagas e não entram): a 4/10
+ *   fica na fatura dela e as próximas, uma em cada fatura seguinte.
  */
 export function pluggyRows(
   data: PluggyData,
@@ -23,10 +25,11 @@ export function pluggyRows(
 ): ImportRow[] {
   const account = data.accounts.find((a) => a.id === accountId)
   if (!account) return []
-  const invoiceOf = (date: string, shift = 0): string | undefined =>
-    card?.closingDay && card.dueDay
-      ? addMonths(suggestInvoiceDate(date, card.closingDay, card.dueDay), shift)
-      : undefined
+  const closingDay = account.closingDay ?? card?.closingDay
+  const dueDay = account.dueDay ?? card?.dueDay
+  const invoiceOf = (t: PluggyData['transactions'][number]): string | undefined =>
+    t.invoiceDate ??
+    (closingDay && dueDay ? suggestInvoiceDate(t.date, closingDay, dueDay) : undefined)
 
   const rows: ImportRow[] = []
   const purchases = new Map<string, { number: number; row: ImportRow }>()
@@ -48,7 +51,7 @@ export function pluggyRows(
         date: t.purchaseDate ?? t.date,
         description: label,
         amountCents: t.amount > 0 ? -cents : cents,
-        invoiceDate: invoiceOf(t.date)
+        invoiceDate: invoiceOf(t)
       })
       continue
     }
@@ -65,8 +68,8 @@ export function pluggyRows(
         description,
         amountCents: -(t.totalAmount ? Math.round(Math.abs(t.totalAmount) * 100) : cents * total),
         installments: total,
-        // a parcela N cai N-1 faturas depois da 1ª
-        invoiceDate: invoiceOf(t.date, -(number - 1))
+        ...(number > 1 ? { firstInstallment: number } : {}),
+        invoiceDate: invoiceOf(t)
       }
     })
   }

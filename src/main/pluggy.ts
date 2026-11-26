@@ -25,6 +25,9 @@ export type PluggyAccount = {
   bank: string
   name: string
   type: 'BANK' | 'CREDIT'
+  /** cartão: dias de fechamento e vencimento informados pelo banco */
+  closingDay?: number
+  dueDay?: number
 }
 
 export type PluggyTransaction = {
@@ -42,6 +45,8 @@ export type PluggyTransaction = {
   totalInstallments?: number
   /** cartão: valor da compra inteira (em reais), quando o banco manda */
   totalAmount?: number
+  /** cartão: vencimento (YYYY-MM-DD) da fatura em que o banco colocou esta transação */
+  invoiceDate?: string
 }
 
 export type PluggyData = {
@@ -150,6 +155,32 @@ type RawTransaction = {
     installmentNumber?: number
     totalInstallments?: number
     totalAmount?: number
+    billId?: string | null
+  }
+}
+type RawBill = { id: string; dueDate?: string | null; billClosingDate?: string | null }
+
+/**
+ * Faturas do cartão: vencimento de cada uma (para pôr cada transação na fatura certa) e os dias
+ * de fechamento e vencimento. Nem todo banco manda faturas; aí volta vazio.
+ */
+async function creditInfo(
+  creds: PluggyCredentials,
+  account: RawCreditAccount
+): Promise<{ dueByBill: Map<string, string>; closingDay?: number; dueDay?: number }> {
+  const bills = await get<{ results: RawBill[] }>(creds, `/bills?accountId=${account.id}`)
+    .then((r) => r.results)
+    .catch((): RawBill[] => [])
+  const dueByBill = new Map<string, string>()
+  for (const bill of bills) if (bill.dueDate) dueByBill.set(bill.id, saoPauloDate(bill.dueDate))
+  const latest = [...bills]
+    .filter((b) => b.dueDate)
+    .sort((a, b) => String(b.dueDate).localeCompare(String(a.dueDate)))[0]
+  const credit = account.creditData ?? undefined
+  return {
+    dueByBill,
+    closingDay: dayOf(credit?.balanceCloseDate) ?? dayOf(latest?.billClosingDate),
+    dueDay: dayOf(credit?.balanceDueDate) ?? dayOf(latest?.dueDate)
   }
 }
 
@@ -166,7 +197,7 @@ export async function fetchPluggy(
     let bank = itemId
     try {
       bank = (await get<RawItem>(creds, `/items/${itemId}`)).connector?.name ?? itemId
-      const { results: accounts } = await get<{ results: RawAccount[] }>(
+      const { results: accounts } = await get<{ results: RawCreditAccount[] }>(
         creds,
         `/accounts?itemId=${itemId}`
       )
@@ -175,7 +206,16 @@ export async function fetchPluggy(
         const name = [account.marketingName || account.name, account.number]
           .filter(Boolean)
           .join(' · ')
-        data.accounts.push({ id: account.id, itemId, bank, name, type: account.type })
+        const credit = account.type === 'CREDIT' ? await creditInfo(creds, account) : null
+        data.accounts.push({
+          id: account.id,
+          itemId,
+          bank,
+          name,
+          type: account.type,
+          ...(credit?.closingDay ? { closingDay: credit.closingDay } : {}),
+          ...(credit?.dueDay ? { dueDay: credit.dueDay } : {})
+        })
 
         let query = `?accountId=${account.id}&dateFrom=${dateFrom}`
         // Páginas de até 500; `next` traz o resto da query (com o cursor `after`).
@@ -196,7 +236,8 @@ export async function fetchPluggy(
               purchaseDate: meta?.purchaseDate ? saoPauloDate(meta.purchaseDate) : undefined,
               installmentNumber: meta?.installmentNumber,
               totalAmount: meta?.totalAmount,
-              totalInstallments: meta?.totalInstallments
+              totalInstallments: meta?.totalInstallments,
+              invoiceDate: meta?.billId ? credit?.dueByBill.get(meta.billId) : undefined
             })
           }
           query = result.next ?? ''
