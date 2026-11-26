@@ -291,7 +291,7 @@ function BudgetCard({
     <Card className="dash-card">
       <div className="card-head">
         <h2>Orçamento</h2>
-        <Link className="text-link" to="/metas">
+        <Link className="text-link" to="/orcamento">
           {rows.length ? 'Ver tudo' : 'Montar'}
         </Link>
       </div>

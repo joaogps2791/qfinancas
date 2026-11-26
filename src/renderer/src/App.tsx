@@ -10,6 +10,7 @@ import Cards from './screens/Cards'
 import Settings from './screens/Settings'
 import Investments from './screens/Investments'
 import Goals from './screens/Goals'
+import Budget from './screens/Budget'
 import Import from './screens/Import'
 import Reports from './screens/Reports'
 import Bills from './screens/Bills'
@@ -63,6 +64,7 @@ export default function App(): React.JSX.Element {
               <Route path="cartoes" element={<Cards />} />
               <Route path="contas" element={<Bills />} />
               <Route path="investimentos" element={<Investments />} />
+              <Route path="orcamento" element={<Budget />} />
               <Route path="metas" element={<Goals />} />
               <Route path="importar" element={<Import />} />
               <Route path="relatorios" element={<Reports />} />
