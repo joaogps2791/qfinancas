@@ -302,6 +302,36 @@ describe('upcomingInvoices', () => {
     expect(limitUsedCents([tx], paidDec, 'Nubank', '2026-12-05')).toBe(15000)
     expect(limitUsedCents([tx], cards, 'Itaú', '2026-12-05')).toBe(0)
   })
+  it('anuidade e recorrência que ainda não foi cobrada não ocupam limite', () => {
+    const annuity = card({
+      id: 'a1',
+      description: 'Anuidade Nubank',
+      amountCents: 4000,
+      installments: 1,
+      invoiceDate: '2026-12-10'
+    })
+    const series = { recurringGroup: 'g1', occurrenceTotal: 3, installments: 1 }
+    const netflix = [
+      card({
+        ...series,
+        id: 'n1',
+        occurrenceNumber: 1,
+        amountCents: 5000,
+        date: '2026-12-01',
+        invoiceDate: '2026-12-10'
+      }),
+      card({
+        ...series,
+        id: 'n2',
+        occurrenceNumber: 2,
+        amountCents: 5000,
+        date: '2027-01-01',
+        invoiceDate: '2027-01-10'
+      })
+    ]
+    // só a compra parcelada (300,00) e o Netflix já cobrado (50,00)
+    expect(limitUsedCents([tx, annuity, ...netflix], cards, 'Nubank', '2026-12-05')).toBe(35000)
+  })
   it('só a fatura paga conta nas saídas; mês passado conta como pago', () => {
     const paid = invoicePaidBy([{ name: 'Nubank', paidInvoices: ['2027-01'] }], '2026-12-20')
     const dec = summarizeEntries(monthEntries([tx], '2026-12'), (c) => paid(c, '2026-12'))

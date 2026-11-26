@@ -361,9 +361,13 @@ export function upcomingInvoices(
   return [...next.values()].sort((a, b) => a.dueDate.localeCompare(b.dueDate))
 }
 
+const ANNUITY = /anuidade/i
+
 /**
  * Limite usado do cartão, como no banco: tudo que ainda não foi pago, ou seja, as faturas em
  * aberto (a deste mês e as futuras, com as parcelas que faltam), já descontados os créditos.
+ * Não ocupam limite: a anuidade (tarifa do banco) e as cobranças recorrentes que ainda não
+ * aconteceram (assinatura de janeiro só pesa quando for cobrada).
  */
 export const limitUsedCents = (
   transactions: Transaction[],
@@ -371,9 +375,17 @@ export const limitUsedCents = (
   card: string,
   today: string
 ): number =>
-  openInvoices(transactions, cards, today)
-    .filter((invoice) => invoice.card === card)
-    .reduce((sum, invoice) => sum + invoice.totalCents, 0)
+  openInvoices(
+    transactions.filter(
+      (t) =>
+        t.kind === 'card' &&
+        t.card === card &&
+        !ANNUITY.test(`${t.description} ${t.category}`) &&
+        !(t.recurringGroup && t.date > today)
+    ),
+    cards,
+    today
+  ).reduce((sum, invoice) => sum + invoice.totalCents, 0)
 
 /**
  * Faturas em aberto (com saldo a pagar e não pagas) de cada cartão usado nos lançamentos: a deste
