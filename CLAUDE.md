@@ -65,6 +65,6 @@ O site antigo sai do ar com `firebase hosting:disable` (o João roda; Auth e Fir
 - `src/renderer/src/domain/`: regras de negócio puras e testadas (centavos, datas, parcelas, recorrência, categorização, orçamento e metas, leitura de OFX/CSV em `importer.ts`, relatórios em `reports.ts`, backup em `backup.ts`, vencimentos e avisos em `alerts.ts`, conversão do Open Finance em `openFinance.ts`, catálogo de modelos de cartão e contraste em `cardSkins.ts`)
 - `src/renderer/src/lib/exportExcel.ts`: planilha .xlsx do relatório (exceljs)
 - `src/renderer/src/data/store.ts`: Firebase + estado (Zustand); `data/alerts.ts`: agenda os avisos de vencimento; `data/portfolio.ts`: carteira com cotações e metas (`usePortfolio`, `useGoals`)
-- `src/renderer/src/screens/`: telas (Dashboard, Transações, Importar extrato, Cartões, Contas fixas, Investimentos, Metas, Relatórios, Configurações); `components/Shell.tsx` é a sidebar e os atalhos; `components/CardArt.tsx` desenha o cartão físico e `components/CardForm.tsx` é o cadastro em 3 passos
+- `src/renderer/src/screens/`: telas (Dashboard, Transações, Importar extrato, Cartões, Contas fixas, Investimentos, Orçamento, Metas, Relatórios, Configurações); `components/Shell.tsx` é a sidebar e os atalhos; `components/CardArt.tsx` desenha o cartão físico e `components/CardForm.tsx` é o cadastro em 3 passos
 - `tests/fixtures/`: extratos de exemplo (dados falsos) para os testes da importação
 - `legacy/`: o site antigo, só como referência
