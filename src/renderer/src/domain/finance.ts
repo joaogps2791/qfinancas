@@ -1,7 +1,14 @@
 // Regras de negócio portadas do legacy/script.js. Tudo em centavos (inteiros) e
 // datas como string ISO YYYY-MM-DD, sem depender do fuso do computador.
 
-export const INCOME_TYPES = ['Salário', 'Freelance', 'Investimentos', 'Reembolso', 'Outros']
+export const INCOME_TYPES = [
+  'Salário',
+  'Freelance',
+  'Investimentos',
+  'Reembolso',
+  'Saldo anterior',
+  'Outros'
+]
 export const PAYMENT_METHODS = ['Pix', 'Débito', 'Dinheiro', 'Transferência', 'Boleto']
 
 type Base = {

@@ -438,6 +438,11 @@ export default function Import(): React.JSX.Element {
                             {row.ignored && (
                               <small>Pagamento ou estorno: fica de fora da fatura</small>
                             )}
+                            {row.opening && !row.ignored && (
+                              <small>
+                                O que a conta tinha antes do extrato, para o saldo bater com o banco
+                              </small>
+                            )}
                           </td>
                           <td>
                             {row.ignored ? (
@@ -487,7 +492,7 @@ export default function Import(): React.JSX.Element {
 
 // ---------- Colunas do CSV ----------
 
-type ColumnKey = 'date' | 'description' | 'amount' | 'credit' | 'type'
+type ColumnKey = 'date' | 'description' | 'amount' | 'credit' | 'type' | 'balance'
 
 function ColumnMapping({
   cells,
@@ -580,6 +585,12 @@ function ColumnMapping({
           options={optional}
           value={String(mapping.type)}
           onChange={(e) => pick('type', e.target.value)}
+        />
+        <Select
+          label="Saldo (acha o saldo anterior)"
+          options={optional}
+          value={String(mapping.balance ?? -1)}
+          onChange={(e) => pick('balance', e.target.value)}
         />
       </div>
       <div className="import-mapping__toggles">

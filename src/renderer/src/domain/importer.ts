@@ -13,7 +13,21 @@ export type ImportRow = {
   installments?: number
   /** parcela da fatura `invoiceDate` (as anteriores já foram pagas e não entram) */
   firstInstallment?: number
+  /** saldo que a conta tinha antes do primeiro lançamento do extrato */
+  opening?: boolean
 }
+
+const OPENING_LINE = /^saldo (anterior|inicial)\b/
+/** "Saldo do dia", "SALDO FINAL", "S A L D O": não é dinheiro entrando ou saindo. */
+const BALANCE_LINE = /^(saldo|s a l d o)\b/
+
+/** Linha com o saldo anterior, na data do primeiro lançamento. */
+const openingRow = (date: string, amountCents: number): ImportRow => ({
+  date,
+  description: 'Saldo anterior',
+  amountCents,
+  opening: true
+})
 
 /** Bancos brasileiros ainda exportam em Windows-1252; tenta UTF-8 primeiro. */
 export function decodeText(bytes: Uint8Array): string {
@@ -113,9 +127,20 @@ export function parseOfx(text: string): OfxResult {
     const date = parseDate(field(block, 'DTPOSTED'))
     const amountCents = parseMoney(field(block, 'TRNAMT'))
     const description = decodeEntities(field(block, 'MEMO') || field(block, 'NAME'))
-    if (date && amountCents) rows.push({ date, description, amountCents })
+    if (date && amountCents && !BALANCE_LINE.test(normalizeText(description))) {
+      rows.push({ date, description, amountCents })
+    }
   }
-  return { rows, isCard: /<CREDITCARDMSGSRSV1>|<CCSTMTRS>/i.test(text) }
+  const isCard = /<CREDITCARDMSGSRSV1>|<CCSTMTRS>/i.test(text)
+  // Conta: o OFX traz o saldo final (LEDGERBAL); o anterior é ele menos os lançamentos.
+  const ledger = /<LEDGERBAL>[\s\S]*?<BALAMT>([^<\r\n]*)/i.exec(text)
+  const closing = ledger ? parseMoney(ledger[1].trim()) : null
+  if (!isCard && closing !== null && rows.length) {
+    const opening = closing - rows.reduce((s, r) => s + r.amountCents, 0)
+    const first = rows.reduce((min, r) => (r.date < min ? r.date : min), rows[0].date)
+    if (opening) rows.unshift(openingRow(first, opening))
+  }
+  return { rows, isCard }
 }
 
 // ---------- CSV ----------
@@ -168,18 +193,25 @@ export type CsvMapping = {
   credit: number
   /** coluna com o tipo ("D"/"C", "Débito"/"Crédito", "Saída"/"Entrada") */
   type: number
+  /** coluna de saldo, para achar o saldo anterior (perfis antigos não têm) */
+  balance?: number
   /** troca o sinal de tudo (ex.: fatura em que a compra vem positiva) */
   invert: boolean
 }
 
-type ColumnKey = 'date' | 'description' | 'amount' | 'credit' | 'type'
+type ColumnKey = 'date' | 'description' | 'amount' | 'credit' | 'type' | 'balance'
 
+// O tipo vem antes do crédito: "Entrada/Saída" e "Crédito/Débito" são a coluna de tipo, não de valor.
 const HEADER_GUESS: [ColumnKey, RegExp][] = [
   ['date', /^(data|date|dt)\b/],
+  [
+    'type',
+    /^(tipo|natureza)|^(d|c|credito|debito|entrada|saida)\s*\/\s*(d|c|credito|debito|entrada|saida)\b/
+  ],
   ['description', /descri|historico|lancamento|title|titulo|estabelecimento|memo/],
   ['credit', /^(credito|entrada)s?\b/],
-  ['amount', /valor|amount|quantia|^debito/],
-  ['type', /^(tipo|natureza|d\/c)/]
+  ['amount', /valor|amount|quantia|^(debito|saida)/],
+  ['balance', /^saldo\b/]
 ]
 
 /** Adivinha o mapeamento pelos nomes do cabeçalho. */
@@ -193,6 +225,7 @@ export function guessMapping(rows: string[][]): CsvMapping {
     amount: 2,
     credit: -1,
     type: -1,
+    balance: -1,
     invert: false
   }
   if (!hasHeader) return mapping
@@ -215,9 +248,23 @@ export function applyMapping(
   mapping: CsvMapping
 ): { rows: ImportRow[]; skipped: number } {
   const out: ImportRow[] = []
+  // saldo depois de cada linha de `out` (coluna de saldo), para calcular o anterior
+  const balances: (number | null)[] = []
+  let opening: number | null = null
   let skipped = 0
+  const balanceCol = mapping.balance ?? -1
   for (const cells of mapping.hasHeader ? rows.slice(1) : rows) {
     const date = parseDate(cells[mapping.date] ?? '')
+    const description = (cells[mapping.description] ?? '').replace(/\s+/g, ' ').trim()
+    const balance = balanceCol >= 0 ? parseMoney(cells[balanceCol] ?? '') : null
+    const line = normalizeText(description)
+    if (BALANCE_LINE.test(line)) {
+      // "Saldo anterior": o valor vem na coluna de saldo ou na de valor.
+      if (OPENING_LINE.test(line) && opening === null) {
+        opening = balance ?? parseMoney(cells[mapping.amount] ?? '')
+      }
+      continue
+    }
     let amount = parseMoney(cells[mapping.amount] ?? '')
     if (mapping.credit >= 0) {
       const credit = parseMoney(cells[mapping.credit] ?? '')
@@ -232,11 +279,15 @@ export function applyMapping(
       skipped++
       continue
     }
-    out.push({
-      date,
-      description: (cells[mapping.description] ?? '').replace(/\s+/g, ' ').trim(),
-      amountCents: mapping.invert ? -amount : amount
-    })
+    out.push({ date, description, amountCents: mapping.invert ? -amount : amount })
+    balances.push(balance)
+  }
+  if (out.length) {
+    // Extrato do mais antigo para o mais novo, ou o contrário: o primeiro lançamento é o mais antigo.
+    const oldest = out[0].date <= out[out.length - 1].date ? 0 : out.length - 1
+    const after = balances[oldest]
+    if (opening === null && after !== null) opening = after - out[oldest].amountCents
+    if (opening) out.unshift(openingRow(out[oldest].date, opening))
   }
   return { rows: out, skipped }
 }
@@ -318,12 +369,14 @@ export function buildPreview(
 ): PreviewRow[] {
   return rows.map((row, key) => {
     const duplicate = findDuplicate(row, existing, destination)
-    const ignored = destination === 'card' && row.amountCents > 0
+    const ignored = destination === 'card' && (row.amountCents > 0 || !!row.opening)
     const text = normalizeText(row.description)
     const category =
-      row.amountCents < 0 || destination === 'card'
-        ? classifyCategory(row.description, categories, 'Outros')
-        : (INCOME_GUESS.find(([, p]) => p.test(text))?.[0] ?? 'Outros')
+      row.opening && row.amountCents > 0
+        ? 'Saldo anterior'
+        : row.amountCents < 0 || destination === 'card'
+          ? classifyCategory(row.description, categories, 'Outros')
+          : (INCOME_GUESS.find(([, p]) => p.test(text))?.[0] ?? 'Outros')
     return { ...row, key, duplicate, ignored, include: !duplicate && !ignored, category }
   })
 }

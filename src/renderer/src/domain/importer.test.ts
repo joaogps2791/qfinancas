@@ -128,6 +128,60 @@ describe('CSV', () => {
     expect(applyMapping(cells, mapping).rows.map((r) => r.amountCents)).toEqual([-1000, 5000])
   })
 
+  it('colunas "Entrada" e "Saída": entram as duas', () => {
+    const cells = parseCsv(
+      'Data;Descrição;Entrada;Saída;Saldo\n01/11/2026;Pix;50,00;;150,00\n02/11/2026;Café;;10,00;140,00\n'
+    )
+    const mapping = guessMapping(cells)
+    expect(mapping).toMatchObject({ credit: 2, amount: 3, balance: 4 })
+    // 150,00 de saldo depois do Pix de 50,00: tinha 100,00 antes
+    expect(applyMapping(cells, mapping).rows.map((r) => r.amountCents)).toEqual([
+      10000, 5000, -1000
+    ])
+  })
+
+  it('coluna "Entrada/Saída" é o tipo, não o valor', () => {
+    const cells = parseCsv(
+      'Data;Descrição;Valor;Entrada/Saída\n01/11/2026;Pix;50,00;Entrada\n02/11/2026;Café;10,00;Saída\n'
+    )
+    const mapping = guessMapping(cells)
+    expect(mapping).toMatchObject({ amount: 2, credit: -1, type: 3 })
+    expect(applyMapping(cells, mapping).rows.map((r) => r.amountCents)).toEqual([5000, -1000])
+  })
+
+  it('saldo anterior pela coluna de saldo; extrato do mais novo para o mais antigo', () => {
+    const cells = parseCsv(
+      'Data;Descrição;Valor;Saldo\n03/11/2026;Café;-10,00;1.040,00\n02/11/2026;Pix;50,00;1.050,00\n'
+    )
+    const { rows } = applyMapping(cells, guessMapping(cells))
+    expect(rows[0]).toEqual({
+      date: '2026-11-02',
+      description: 'Saldo anterior',
+      amountCents: 100000,
+      opening: true
+    })
+    // saldo anterior + lançamentos = saldo de hoje no banco
+    expect(rows.reduce((s, r) => s + r.amountCents, 0)).toBe(104000)
+  })
+
+  it('linha "Saldo anterior" vira o saldo; "Saldo do dia" fica de fora', () => {
+    const cells = parseCsv(
+      'Data;Descrição;Valor\n01/11/2026;SALDO ANTERIOR;-200,00\n02/11/2026;Pix;50,00\n02/11/2026;SALDO DO DIA;-150,00\n'
+    )
+    const { rows } = applyMapping(cells, guessMapping(cells))
+    expect(rows.map((r) => [r.description, r.amountCents])).toEqual([
+      ['Saldo anterior', -20000],
+      ['Pix', 5000]
+    ])
+  })
+
+  it('OFX de conta: saldo anterior = saldo final menos os lançamentos', () => {
+    const { rows } = parseOfx(
+      '<OFX><BANKTRANLIST><STMTTRN><DTPOSTED>20261102<TRNAMT>-10.00<MEMO>Café</STMTTRN></BANKTRANLIST><LEDGERBAL><BALAMT>990.00<DTASOF>20261130</LEDGERBAL></OFX>'
+    )
+    expect(rows[0]).toMatchObject({ description: 'Saldo anterior', amountCents: 100000 })
+  })
+
   it('sem cabeçalho, usa as três primeiras colunas', () => {
     const cells = parseCsv('01/11/2026;Café;-10,00\n')
     expect(guessMapping(cells).hasHeader).toBe(false)
