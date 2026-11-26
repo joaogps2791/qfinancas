@@ -37,8 +37,8 @@ const NAV = [
   { to: '/cartoes', label: 'Cartões', icon: CreditCard },
   { to: '/contas', label: 'Contas', icon: CalendarClock },
   { to: '/investimentos', label: 'Investimentos', icon: TrendingUp },
-  { to: '/orcamento', label: 'Orçamento', icon: Calculator },
   { to: '/metas', label: 'Metas', icon: Target },
+  { to: '/orcamento', label: 'Orçamento', icon: Calculator },
   { to: '/relatorios', label: 'Relatórios', icon: FileBarChart },
   { to: '/configuracoes', label: 'Configurações', icon: SettingsIcon }
 ]
