@@ -32,7 +32,8 @@ function notesText(info: UpdateInfo): string {
     ? info.releaseNotes.map((n) => n.note ?? '').join('\n')
     : (info.releaseNotes ?? '')
   return raw
-    .replace(/<br\s*\/?>|<\/p>|<\/li>/gi, '\n')
+    .replace(/<h\d[^>]*>/gi, '\n## ')
+    .replace(/<br\s*\/?>|<\/p>|<\/li>|<\/h\d>/gi, '\n')
     .replace(/<li>/gi, '• ')
     .replace(/<[^>]+>/g, '')
     .replace(/&amp;/g, '&')

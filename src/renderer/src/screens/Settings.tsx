@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BellRing, DatabaseBackup, ImagePlus, Info, KeyRound, Plus, Trash2 } from 'lucide-react'
+import { DatabaseBackup, ImagePlus, KeyRound, Plus, Sparkles, Trash2 } from 'lucide-react'
 import {
   currentBackupData,
   friendlyError,
@@ -31,7 +31,7 @@ import { DEFAULT_NOTIFICATIONS, type NotificationSettings } from '../domain/aler
 import ThemePicker from '../components/ThemePicker'
 import CardArt from '../components/CardArt'
 import CardForm from '../components/CardForm'
-import { useUpdateState } from '../data/updates'
+import { parseNotes, useUpdateState } from '../data/updates'
 import { IconPicker, IconBadge } from '../components/TxIcon'
 
 // ---------- Perfil ----------
@@ -327,16 +327,16 @@ function CardsSection({ saved }: { saved: Card[] }): React.JSX.Element {
 // ---------- Integrações ----------
 
 const SECRETS = [
-  { key: 'brapi.token', label: 'Token da brapi.dev', hint: 'Cotações de ações e FIIs (Fase 4).' },
+  { key: 'brapi.token', label: 'Token da brapi.dev', hint: 'Cotações de ações e FIIs.' },
   {
     key: 'pluggy.clientId',
     label: 'Pluggy: Client ID',
-    hint: 'Open Finance pelo Meu Pluggy (Fase 10).'
+    hint: 'Open Finance pelo Meu Pluggy.'
   },
   {
     key: 'pluggy.clientSecret',
     label: 'Pluggy: Client Secret',
-    hint: 'Open Finance pelo Meu Pluggy (Fase 10).'
+    hint: 'Open Finance pelo Meu Pluggy.'
   },
   {
     key: 'pluggy.itemIds',
@@ -533,10 +533,6 @@ function NotificationsSection({ saved }: { saved?: NotificationSettings }): Reac
   return (
     <Panel className="settings-section">
       <h2>Notificações</h2>
-      <p className="muted">
-        <BellRing size={14} aria-hidden /> Avisos do Windows antes do vencimento das faturas e das
-        contas fixas. Clicar no aviso abre a fatura ou a conta.
-      </p>
       <Toggle
         label="Avisos de vencimento"
         description="Desligado, nenhum aviso é mandado."
@@ -706,12 +702,34 @@ function BackupSection(): React.JSX.Element {
 
 // ---------- Sobre e atualizações ----------
 
+/** Notas da versão em blocos: títulos, tópicos com marcador e parágrafos. */
+function ReleaseNotes({ text }: { text: string }): React.JSX.Element {
+  return (
+    <div className="release-notes">
+      {parseNotes(text).map((block, i) =>
+        block.type === 'heading' ? (
+          <h3 key={i}>{block.text}</h3>
+        ) : block.type === 'list' ? (
+          <ul key={i}>
+            {block.items.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        ) : (
+          <p key={i}>{block.text}</p>
+        )
+      )}
+    </div>
+  )
+}
+
 function AboutSection(): React.JSX.Element {
   const [state, setState] = useUpdateState()
   const [version, setVersion] = useState('')
   const [auto, setAuto] = useState<boolean | null>(null)
   const [notes, setNotes] = useState<string | null>(null)
   const [checking, setChecking] = useState(false)
+  const [showNotes, setShowNotes] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -763,8 +781,7 @@ function AboutSection(): React.JSX.Element {
     <Panel className="settings-section">
       <h2>Sobre</h2>
       <p className="muted">
-        <Info size={14} aria-hidden /> QFinanças <strong>{version || '…'}</strong>. As versões novas
-        chegam sozinhas pelo GitHub (joaogps2791/qfinancas).
+        Versão: <strong>{version || '…'}</strong>
       </p>
       <Toggle
         label="Atualizar automaticamente"
@@ -798,11 +815,19 @@ function AboutSection(): React.JSX.Element {
         </p>
       )}
       {notes && (
-        <div className="release-notes">
-          <h3>Novidades da versão {version}</h3>
-          <p>{notes}</p>
+        <div>
+          <Button size="sm" icon={<Sparkles size={14} />} onClick={() => setShowNotes(true)}>
+            Novidades da versão {version}
+          </Button>
         </div>
       )}
+      <Modal
+        open={showNotes}
+        onClose={() => setShowNotes(false)}
+        title={`Novidades da versão ${version}`}
+      >
+        <ReleaseNotes text={notes ?? ''} />
+      </Modal>
     </Panel>
   )
 }
