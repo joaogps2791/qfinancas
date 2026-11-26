@@ -31,29 +31,35 @@ const parseDay = (value: string): number | undefined => {
 
 export default function CardForm({
   card,
+  prefill,
   onDone
 }: {
   /** sem cartão = novo */
   card?: Card
+  /** cartão novo já preenchido (ex.: vindo do Open Finance); começa na escolha do modelo */
+  prefill?: Card
   onDone: () => void
 }): React.JSX.Element {
-  const [step, setStep] = useState<Step>(card ? 3 : 1)
-  const [issuer, setIssuer] = useState<Issuer>(card?.issuer ?? 'outro')
-  const [skin, setSkin] = useState<string>(card?.skin ?? CUSTOM_SKIN)
+  const start = card ?? prefill
+  const [step, setStep] = useState<Step>(card ? 3 : prefill ? 2 : 1)
+  const [issuer, setIssuer] = useState<Issuer>(start?.issuer ?? 'outro')
+  const [skin, setSkin] = useState<string>(
+    start?.skin ?? SKINS.find((s) => s.issuer === start?.issuer)?.id ?? CUSTOM_SKIN
+  )
   const [custom, setCustom] = useState<CustomSkin>(
-    card?.custom ?? {
-      colors: [card?.color ?? issuerOf({ issuer: 'outro' }).color],
+    start?.custom ?? {
+      colors: [start?.color ?? issuerOf({ issuer: 'outro' }).color],
       finish: 'fosco'
     }
   )
   const [form, setForm] = useState({
-    name: card?.name ?? '',
-    nickname: card?.nickname ?? '',
-    network: card?.network ?? ('' as Network | ''),
-    last4: card?.last4 ?? '',
-    closingDay: card?.closingDay ? String(card.closingDay) : '',
-    dueDay: card?.dueDay ? String(card.dueDay) : '',
-    limit: card?.limitCents ? centsToInput(card.limitCents) : ''
+    name: start?.name ?? '',
+    nickname: start?.nickname ?? '',
+    network: start?.network ?? ('' as Network | ''),
+    last4: start?.last4 ?? '',
+    closingDay: start?.closingDay ? String(start.closingDay) : '',
+    dueDay: start?.dueDay ? String(start.dueDay) : '',
+    limit: start?.limitCents ? centsToInput(start.limitCents) : ''
   })
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)

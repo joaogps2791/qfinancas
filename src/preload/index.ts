@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { QuotesResult, Rates } from '../main/market'
 import type { UpdateState } from '../main/updater'
-import type { PluggyData, PluggyInvestments, PluggyItemStatus } from '../main/pluggy'
+import type { PluggyCards, PluggyData, PluggyInvestments, PluggyItemStatus } from '../main/pluggy'
 
 type FileFilter = { name: string; extensions: string[] }
 /** Mesmo formato de AlertTarget em src/renderer/src/domain/alerts.ts. */
@@ -35,7 +35,9 @@ const api = {
     /** Contas e transações de todos os itens desde `dateFrom` (YYYY-MM-DD). */
     fetch: (dateFrom: string): Promise<PluggyData> => ipcRenderer.invoke('pluggy:fetch', dateFrom),
     /** Posições de investimento de todos os itens. */
-    investments: (): Promise<PluggyInvestments> => ipcRenderer.invoke('pluggy:investments')
+    investments: (): Promise<PluggyInvestments> => ipcRenderer.invoke('pluggy:investments'),
+    /** Cartões de crédito de todos os itens (só os 4 últimos dígitos). */
+    cards: (): Promise<PluggyCards> => ipcRenderer.invoke('pluggy:cards')
   },
   /** Versão instalada (ex.: "1.0.0"). */
   appVersion: (): Promise<string> => ipcRenderer.invoke('app:version'),

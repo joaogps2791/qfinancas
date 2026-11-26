@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { compareHoldings, pluggyRows } from './openFinance'
-import type { PluggyData, PluggyInvestment } from '../../../main/pluggy'
+import { compareCards, compareHoldings, pluggyRows } from './openFinance'
+import type { Card } from './categories'
+import type { PluggyCard, PluggyData, PluggyInvestment } from '../../../main/pluggy'
 
 const data: PluggyData = {
   errors: [],
@@ -195,4 +196,96 @@ describe('compareHoldings', () => {
   it('ordena do maior saldo para o menor', () => {
     expect(result.map((r) => r.investment.id)).toEqual(['c', 'd', 'a', 'b'])
   })
+})
+
+describe('compareCards', () => {
+  const card = (o: Partial<PluggyCard>): PluggyCard => ({
+    id: o.id ?? 'x',
+    bank: 'Nubank',
+    name: '',
+    ...o
+  })
+  const existing: Card[] = [
+    { name: 'Nubank', color: '#820ad1', issuer: 'nubank', last4: '1234' },
+    { name: 'Caixa', color: '#005ca9', issuer: 'caixa' }
+  ]
+  const result = compareCards(
+    [
+      card({
+        id: 'a',
+        bank: 'Nu Pagamentos',
+        name: 'Ultravioleta',
+        last4: '1234',
+        brand: 'MASTERCARD'
+      }),
+      card({
+        id: 'b',
+        bank: 'Nubank',
+        name: 'Nubank Gold',
+        level: 'GOLD',
+        last4: '9876',
+        brand: 'MASTERCARD',
+        closingDay: 3,
+        dueDay: 10,
+        creditLimit: 4500.5
+      }),
+      card({
+        id: 'c',
+        bank: 'Caixa Econômica Federal',
+        name: 'Caixa Gold',
+        last4: '5555',
+        brand: 'VISA'
+      }),
+      card({
+        id: 'd',
+        bank: 'Bradesco',
+        name: 'Elo Mais',
+        level: 'GOLD',
+        last4: '4321',
+        brand: 'ELO'
+      })
+    ],
+    existing
+  )
+  const byId = Object.fromEntries(result.map((r) => [r.source.id, r]))
+
+  it('reconhece o que já está cadastrado pelo final ou pelo banco', () => {
+    expect(byId.a.existing).toBe('Nubank')
+    expect(byId.b.existing).toBeUndefined()
+    // a Caixa do app não tem final: conta como a mesma, para não duplicar
+    expect(byId.c.existing).toBe('Caixa')
+  })
+
+  it('monta o cartão com nome sem repetir, bandeira, dias e limite', () => {
+    expect(byId.b.draft).toEqual({
+      name: 'Nubank 9876',
+      color: '#820ad1',
+      issuer: 'nubank',
+      network: 'mastercard',
+      last4: '9876',
+      nickname: 'Nubank Gold',
+      closingDay: 3,
+      dueDay: 10,
+      limitCents: 450_050
+    })
+    expect(byId.d.draft).toMatchObject({
+      name: 'Bradesco',
+      issuer: 'bradesco',
+      network: 'elo',
+      nickname: 'Elo Mais Gold'
+    })
+  })
+
+  it('banco desconhecido fica como "Outro banco" com o nome do conector', () => {
+    const [r] = compareCards([card({ bank: 'Cooperativa Sicredi', brand: 'VISA' })], [])
+    expect(r.draft).toMatchObject({ name: 'Cooperativa Sicredi', issuer: 'outro', network: 'visa' })
+  })
+})
+
+it('cartão antigo sem banco salvo é reconhecido pelo nome', () => {
+  const [r] = compareCards(
+    [{ id: 'a', bank: 'Nubank', name: 'Nubank Croma', last4: '4821' }],
+    [{ name: 'Nubank', color: '#8a05be' }]
+  )
+  expect(r.existing).toBe('Nubank')
 })

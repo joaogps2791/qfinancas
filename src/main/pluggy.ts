@@ -299,3 +299,73 @@ export async function fetchPluggyInvestments(creds: PluggyCredentials): Promise<
   }
   return data
 }
+
+// ---------- Cartões ----------
+
+export type PluggyCard = {
+  id: string
+  bank: string
+  /** nome do produto (ex.: "Ultravioleta", "Elo Mais") */
+  name: string
+  /** só os 4 últimos dígitos, quando o banco manda */
+  last4?: string
+  /** bandeira como a Pluggy manda (VISA, MASTERCARD, ELO…) */
+  brand?: string
+  /** nível (GOLD, PLATINUM, BLACK…) */
+  level?: string
+  closingDay?: number
+  dueDay?: number
+  /** limite total, em reais */
+  creditLimit?: number
+}
+
+export type PluggyCards = { cards: PluggyCard[]; errors: string[] }
+
+type RawCreditAccount = RawAccount & {
+  creditData?: {
+    brand?: string | null
+    level?: string | null
+    balanceCloseDate?: string | null
+    balanceDueDate?: string | null
+    creditLimit?: number | null
+  } | null
+}
+
+const dayOf = (iso: string | null | undefined): number | undefined =>
+  iso ? Number(saoPauloDate(iso).slice(8, 10)) : undefined
+
+/** Cartões de crédito de todos os itens, com bandeira, final, fechamento, vencimento e limite. */
+export async function fetchPluggyCards(creds: PluggyCredentials): Promise<PluggyCards> {
+  requireCredentials(creds)
+  const data: PluggyCards = { cards: [], errors: [] }
+  for (const itemId of creds.itemIds) {
+    let bank = itemId
+    try {
+      bank = (await get<RawItem>(creds, `/items/${itemId}`)).connector?.name ?? itemId
+      const { results } = await get<{ results: RawCreditAccount[] }>(
+        creds,
+        `/accounts?itemId=${itemId}&type=CREDIT`
+      )
+      for (const account of results) {
+        if (account.type !== 'CREDIT') continue
+        // O número vem mascarado ou só com o final; guarda só os 4 últimos dígitos.
+        const digits = (account.number ?? '').replace(/\D/g, '')
+        const credit = account.creditData ?? undefined
+        data.cards.push({
+          id: account.id,
+          bank,
+          name: (account.marketingName || account.name || '').trim(),
+          last4: digits.length >= 4 ? digits.slice(-4) : undefined,
+          brand: credit?.brand ?? undefined,
+          level: credit?.level ?? undefined,
+          closingDay: dayOf(credit?.balanceCloseDate),
+          dueDay: dayOf(credit?.balanceDueDate),
+          creditLimit: credit?.creditLimit ?? undefined
+        })
+      }
+    } catch (error) {
+      data.errors.push(`${bank}: ${(error as Error).message}`)
+    }
+  }
+  return data
+}

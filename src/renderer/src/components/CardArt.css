@@ -56,7 +56,14 @@
 .card-art--metalico .card-art__texture {
   mix-blend-mode: overlay;
   background:
-    linear-gradient(115deg, transparent 20%, var(--light) 38%, transparent 52%, var(--light) 64%, transparent 78%),
+    linear-gradient(
+      115deg,
+      transparent 20%,
+      var(--light) 38%,
+      transparent 52%,
+      var(--light) 64%,
+      transparent 78%
+    ),
     repeating-linear-gradient(90deg, rgb(255 255 255 / 0.05) 0 1px, transparent 1px 3px);
 }
 .card-art--holografico .card-art__texture {
@@ -81,7 +88,12 @@
 .card-art__sheen {
   z-index: 3;
   opacity: 0;
-  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.28) 50%, transparent 65%);
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgb(255 255 255 / 0.28) 50%,
+    transparent 65%
+  );
   transform: translateX(-100%);
 }
 .card-art--interactive:hover {
@@ -351,4 +363,45 @@
 }
 .tx-form__card > .card-art {
   margin-bottom: 4px;
+}
+
+/* Cartões do Open Finance (modal da aba Cartões) */
+.ui-modal:has(.of-cards) {
+  width: min(640px, calc(100vw - 48px));
+}
+.of-cards {
+  display: grid;
+  gap: var(--space-3);
+}
+.of-cards p {
+  margin: 0;
+}
+.of-cards__list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.of-cards__list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.of-cards__info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.of-cards__info small {
+  color: var(--text-muted);
+}
+.of-cards__actions {
+  display: flex;
+  justify-content: flex-end;
 }

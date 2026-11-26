@@ -1,5 +1,7 @@
-// Transações do Open Finance (Meu Pluggy) → linhas da prévia da importação (Fase 6).
-import type { PluggyData, PluggyInvestment } from '../../../main/pluggy'
+// Open Finance (Meu Pluggy) → prévia da importação, carteira de investimentos e cartões.
+import type { PluggyCard, PluggyData, PluggyInvestment } from '../../../main/pluggy'
+import { normalizeText as plain, type Card } from './categories'
+import { issuerOf, type Issuer, type Network } from './cardSkins'
 import { suggestInvoiceDate } from './finance'
 import type { ImportRow } from './importer'
 import type { AssetType, FixedIncome, Indexer, InvestmentTransaction } from './investments'
@@ -66,7 +68,7 @@ const cents = (reais: number): number => Math.round(reais * 100)
 const normalize = (text: string): string =>
   text
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '')
 
@@ -171,4 +173,92 @@ export function compareHoldings(
       }
     })
     .sort((a, b) => b.pluggyCents - a.pluggyCents)
+}
+
+// ---------- Cartões ----------
+
+export type CardMatch = {
+  source: PluggyCard
+  /** nome do cartão do app que já é este; sem ele, falta cadastrar */
+  existing?: string
+  /** como entraria no app, para conferir no cadastro antes de salvar */
+  draft: Card
+}
+
+// Nomes que os conectores usam e que não batem direto com o rótulo do banco.
+const ISSUER_ALIASES: [RegExp, Issuer][] = [
+  [/nu ?pagamentos|nubank|\bnu\b/, 'nubank'],
+  [/itau/, 'itau'],
+  [/banco ?inter|\binter\b/, 'inter'],
+  [/\bc6\b/, 'c6'],
+  [/santander/, 'santander'],
+  [/bradesco/, 'bradesco'],
+  [/banco do brasil|\bbb\b/, 'bb'],
+  [/caixa/, 'caixa'],
+  [/picpay/, 'picpay'],
+  [/mercado ?pago/, 'mercadopago'],
+  [/\bxp\b/, 'xp'],
+  [/btg/, 'btg'],
+  [/neon/, 'neon']
+]
+
+export function issuerFromBank(bank: string): Issuer {
+  const name = plain(bank)
+  return ISSUER_ALIASES.find(([re]) => re.test(name))?.[1] ?? 'outro'
+}
+
+export function networkFromBrand(brand = ''): Network | undefined {
+  const b = brand.toUpperCase()
+  if (b.includes('VISA')) return 'visa'
+  if (b.includes('MASTER')) return 'mastercard'
+  if (b.includes('ELO')) return 'elo'
+  if (b.includes('AMEX') || b.includes('AMERICAN')) return 'amex'
+  if (b.includes('HIPER')) return 'hipercard'
+  return undefined
+}
+
+const title = (text: string): string =>
+  text.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase())
+
+/**
+ * Cartões da Pluggy ao lado dos do app. Já cadastrado = mesmo final de 4 dígitos ou, quando um
+ * dos dois não tem final, o mesmo banco (para não criar o mesmo cartão duas vezes).
+ */
+export function compareCards(cards: PluggyCard[], existing: Card[]): CardMatch[] {
+  const taken = new Set(existing.map((c) => c.name.toLowerCase()))
+  const used = new Set<string>()
+  return cards.map((source) => {
+    const issuer = issuerFromBank(source.bank)
+    const same = existing.find(
+      (c) =>
+        !used.has(c.name) &&
+        (source.last4 && c.last4
+          ? c.last4 === source.last4
+          : issuer !== 'outro' && (c.issuer ?? issuerFromBank(c.name)) === issuer)
+    )
+    if (same) used.add(same.name)
+
+    const label = issuer === 'outro' ? source.bank : issuerOf({ issuer }).label
+    let name = label
+    if (taken.has(name.toLowerCase())) name = `${label} ${source.last4 ?? source.name}`.trim()
+    for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${label} ${n}`
+    taken.add(name.toLowerCase())
+
+    const network = networkFromBrand(source.brand)
+    // "Ultravioleta" + GOLD → "Ultravioleta Gold"; não repete o nível se ele já está no nome.
+    const level = source.level && !plain(source.name).includes(plain(source.level))
+    const nickname = [source.name, level ? title(source.level ?? '') : ''].join(' ').trim()
+    const draft: Card = {
+      name,
+      color: issuerOf({ issuer }).color,
+      issuer,
+      ...(network ? { network } : {}),
+      ...(source.last4 ? { last4: source.last4 } : {}),
+      ...(nickname ? { nickname } : {}),
+      ...(source.closingDay ? { closingDay: source.closingDay } : {}),
+      ...(source.dueDay ? { dueDay: source.dueDay } : {}),
+      ...(source.creditLimit ? { limitCents: Math.round(source.creditLimit * 100) } : {})
+    }
+    return { source, existing: same?.name, draft }
+  })
 }

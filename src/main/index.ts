@@ -22,6 +22,7 @@ import { fetchQuotes, fetchRates } from './market'
 import { setupUpdater } from './updater'
 import {
   fetchPluggy,
+  fetchPluggyCards,
   fetchPluggyInvestments,
   parseItemIds,
   testPluggy,
@@ -378,6 +379,7 @@ function registerIpc(): void {
     fetchPluggy(pluggyCredentials(), dateFrom)
   )
   ipcMain.handle('pluggy:investments', () => fetchPluggyInvestments(pluggyCredentials()))
+  ipcMain.handle('pluggy:cards', () => fetchPluggyCards(pluggyCredentials()))
 
   ipcMain.handle('market:quotes', (_e, tickers: unknown, force: unknown) =>
     fetchQuotes(tickers, force === true, getSecret('brapi.token'), cacheStorage)
