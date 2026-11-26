@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Bar,
   BarChart,
@@ -13,6 +13,7 @@ import {
 import {
   Coins,
   Landmark,
+  Link2,
   PiggyBank,
   Plus,
   RefreshCw,
@@ -48,6 +49,8 @@ import {
   type Position
 } from '../domain/investments'
 import type { QuotesResult } from '../../../main/market'
+import type { PluggyInvestments } from '../../../main/pluggy'
+import { compareHoldings, type HoldingDraft } from '../domain/openFinance'
 import {
   Badge,
   Button,
@@ -63,7 +66,7 @@ import { DividendForm, FixedIncomeForm, OperationForm } from '../components/Inve
 import MonthPicker from '../components/MonthPicker'
 import './investments.css'
 
-type Dialog = 'operation' | 'fixed' | 'dividend' | null
+type Dialog = 'operation' | 'fixed' | 'dividend' | 'openFinance' | { draft: HoldingDraft } | null
 
 const CLASS_ORDER: AssetType[] = [
   'acao',
@@ -87,6 +90,7 @@ export default function Investments(): React.JSX.Element {
   const month = useApp((s) => s.month)
   const today = todayISO()
   const [dialog, setDialog] = useState<Dialog>(null)
+  const [pluggy, setPluggy] = useState<PluggyInvestments | null>(null)
   const { open, assets, fixed, quoteTickers, quotes, loading, refresh, ratesError } = usePortfolio()
 
   const totalValue =
@@ -119,6 +123,7 @@ export default function Investments(): React.JSX.Element {
   )
   const isEmpty = !investmentTransactions.length && !fixedIncome.length && !dividends.length
   const close = (): void => setDialog(null)
+  const draft = dialog && typeof dialog === 'object' ? dialog.draft : null
 
   return (
     <div className="page">
@@ -134,6 +139,9 @@ export default function Investments(): React.JSX.Element {
             onClick={refresh}
           >
             Atualizar cotações
+          </Button>
+          <Button icon={<Link2 size={16} />} onClick={() => setDialog('openFinance')}>
+            Open Finance
           </Button>
           <Button icon={<Coins size={16} />} onClick={() => setDialog('dividend')}>
             Provento
@@ -225,17 +233,171 @@ export default function Investments(): React.JSX.Element {
         open={dialog !== null}
         onClose={close}
         title={
-          dialog === 'fixed'
-            ? 'Nova aplicação de renda fixa'
-            : dialog === 'dividend'
-              ? 'Novo provento'
-              : 'Nova operação'
+          dialog === 'openFinance'
+            ? 'Investimentos no Open Finance'
+            : dialog === 'fixed' || draft?.kind === 'fixed'
+              ? 'Nova aplicação de renda fixa'
+              : dialog === 'dividend'
+                ? 'Novo provento'
+                : 'Nova operação'
         }
       >
+        {dialog === 'openFinance' && (
+          <OpenFinanceHoldings
+            data={pluggy}
+            onData={setPluggy}
+            assets={assets}
+            fixed={fixed}
+            today={today}
+            onAdd={(next) => setDialog({ draft: next })}
+          />
+        )}
+        {draft?.kind === 'operation' && (
+          <OperationForm initial={draft.data} onDone={() => setDialog('openFinance')} />
+        )}
+        {draft?.kind === 'fixed' && (
+          <FixedIncomeForm initial={draft.data} onDone={() => setDialog('openFinance')} />
+        )}
         {dialog === 'operation' && <OperationForm onDone={close} />}
         {dialog === 'fixed' && <FixedIncomeForm onDone={close} />}
         {dialog === 'dividend' && <DividendForm tickers={quoteTickers} onDone={close} />}
       </Modal>
+    </div>
+  )
+}
+
+// ---------- Open Finance ----------
+
+/** Posições da Pluggy ao lado do que foi lançado à mão; o que falta abre o formulário preenchido. */
+function OpenFinanceHoldings({
+  data,
+  onData,
+  assets,
+  fixed,
+  today,
+  onAdd
+}: {
+  data: PluggyInvestments | null
+  onData: (data: PluggyInvestments) => void
+  assets: AssetRow[]
+  fixed: FixedRow[]
+  today: string
+  onAdd: (draft: HoldingDraft) => void
+}): React.JSX.Element {
+  const [loading, setLoading] = useState(!data)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = (): Promise<void> =>
+    window.api.pluggy
+      .investments()
+      .then(onData)
+      .catch((e) => setError(friendlyError(e)))
+      .finally(() => setLoading(false))
+  const reload = (): void => {
+    setLoading(true)
+    setError(null)
+    load()
+  }
+  // Busca sozinho só na primeira vez que abre; depois, pelo botão.
+  useEffect(() => {
+    if (!data) load()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const rows = data
+    ? compareHoldings(
+        data.investments,
+        {
+          assets,
+          fixed: fixed.map((f) => ({ id: f.id, name: f.name, grossCents: f.estimate.grossCents }))
+        },
+        today
+      )
+    : []
+  const missing = rows.filter((r) => r.appCents === null).length
+
+  return (
+    <div className="of-holdings">
+      <p className="muted small">
+        Saldos que os bancos mandam pelo Meu Pluggy (atualizados uma vez por dia), ao lado da sua
+        carteira. Nada é salvo sozinho: em &quot;Lançar&quot; você confere os dados antes.
+      </p>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      {data?.errors.map((e) => (
+        <p key={e} className="error">
+          {e}
+        </p>
+      ))}
+      {loading && <p className="muted">Buscando na Pluggy…</p>}
+      {data && !loading && !rows.length && (
+        <p className="muted">Nenhum investimento ativo nos bancos conectados.</p>
+      )}
+      {rows.length > 0 && (
+        <>
+          <p className="small">
+            {missing
+              ? `${missing} de ${rows.length} ainda não estão na carteira.`
+              : 'Tudo o que está no Open Finance já está na carteira.'}
+          </p>
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Investimento</th>
+                  <th className="num">No banco</th>
+                  <th className="num">No app</th>
+                  <th className="num">Diferença</th>
+                  <th aria-label="Ações" />
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.investment.id}>
+                    <td>
+                      <strong>{r.investment.code ?? r.investment.name}</strong>
+                      <small>
+                        {r.investment.bank}
+                        {r.investment.code && ` · ${r.investment.name}`}
+                        {r.appName && r.appName !== r.investment.code && ` · ligado a ${r.appName}`}
+                      </small>
+                    </td>
+                    <td className="num">{formatBRL(r.pluggyCents)}</td>
+                    <td className="num">
+                      {r.appCents === null ? (
+                        <Badge tone="warning">Falta</Badge>
+                      ) : (
+                        formatBRL(r.appCents)
+                      )}
+                    </td>
+                    <td className="num">
+                      {r.appCents === null ? '—' : formatBRL(r.pluggyCents - r.appCents)}
+                    </td>
+                    <td>
+                      {r.appCents === null && (
+                        <Button size="sm" onClick={() => onAdd(r.draft)}>
+                          Lançar
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+      <div className="of-holdings__actions">
+        <Button
+          icon={<RefreshCw size={16} className={loading ? 'spin' : undefined} />}
+          disabled={loading}
+          onClick={reload}
+        >
+          Buscar de novo
+        </Button>
+      </div>
     </div>
   )
 }

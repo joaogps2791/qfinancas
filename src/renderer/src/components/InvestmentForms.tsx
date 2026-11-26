@@ -11,6 +11,7 @@ import {
   VARIABLE_TYPES,
   type AssetType,
   type Dividend,
+  type FixedIncome,
   type Indexer,
   type InvestmentTransaction
 } from '../domain/investments'
@@ -68,16 +69,25 @@ function useSave(onDone: () => void): {
 
 // ---------- Compra / venda ----------
 
-export function OperationForm({ onDone }: { onDone: () => void }): React.JSX.Element {
+/** `initial`: vem preenchido (ex.: posição do Open Finance); aí não lança no extrato por padrão. */
+export function OperationForm({
+  onDone,
+  initial
+}: {
+  onDone: () => void
+  initial?: Omit<InvestmentTransaction, 'id'>
+}): React.JSX.Element {
   const [type, setType] = useState<'compra' | 'venda'>('compra')
-  const [assetType, setAssetType] = useState<AssetType>('acao')
-  const [ticker, setTicker] = useState('')
-  const [quantity, setQuantity] = useState('')
-  const [price, setPrice] = useState('')
+  const [assetType, setAssetType] = useState<AssetType>(initial?.assetType ?? 'acao')
+  const [ticker, setTicker] = useState(initial?.ticker ?? '')
+  const [quantity, setQuantity] = useState(
+    initial ? initial.quantity.toLocaleString('pt-BR', { maximumFractionDigits: 8 }) : ''
+  )
+  const [price, setPrice] = useState(initial ? centsToInput(initial.unitPriceCents) : '')
   const [fees, setFees] = useState('')
-  const [date, setDate] = useState(todayISO())
-  const [broker, setBroker] = useState('')
-  const [toStatement, setToStatement] = useState(true)
+  const [date, setDate] = useState(initial?.date ?? todayISO())
+  const [broker, setBroker] = useState(initial?.broker ?? '')
+  const [toStatement, setToStatement] = useState(!initial)
   const { error, saving, setError, run } = useSave(onDone)
 
   const qty = parseQuantity(quantity)
@@ -190,16 +200,22 @@ const RATE_HINTS: Record<Indexer, string> = {
   poupanca: ''
 }
 
-export function FixedIncomeForm({ onDone }: { onDone: () => void }): React.JSX.Element {
-  const [name, setName] = useState('')
-  const [assetType, setAssetType] = useState<AssetType>('cdb')
-  const [indexer, setIndexer] = useState<Indexer>('cdi')
-  const [rate, setRate] = useState('100')
-  const [invested, setInvested] = useState('')
-  const [startDate, setStartDate] = useState(todayISO())
-  const [maturityDate, setMaturityDate] = useState('')
-  const [liquidity, setLiquidity] = useState('')
-  const [toStatement, setToStatement] = useState(true)
+export function FixedIncomeForm({
+  onDone,
+  initial
+}: {
+  onDone: () => void
+  initial?: Omit<FixedIncome, 'id'>
+}): React.JSX.Element {
+  const [name, setName] = useState(initial?.name ?? '')
+  const [assetType, setAssetType] = useState<AssetType>(initial?.assetType ?? 'cdb')
+  const [indexer, setIndexer] = useState<Indexer>(initial?.indexer ?? 'cdi')
+  const [rate, setRate] = useState(initial ? initial.rate.toLocaleString('pt-BR') : '100')
+  const [invested, setInvested] = useState(initial ? centsToInput(initial.investedCents) : '')
+  const [startDate, setStartDate] = useState(initial?.startDate ?? todayISO())
+  const [maturityDate, setMaturityDate] = useState(initial?.maturityDate ?? '')
+  const [liquidity, setLiquidity] = useState(initial?.liquidity ?? '')
+  const [toStatement, setToStatement] = useState(!initial)
   const { error, saving, setError, run } = useSave(onDone)
 
   const submit = (event: React.FormEvent): void => {

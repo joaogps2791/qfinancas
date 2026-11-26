@@ -170,3 +170,19 @@
     max-height: 460px;
   }
 }
+
+/* Open Finance: tabela de posições da Pluggy dentro do modal (mais largo que um formulário) */
+.ui-modal:has(.of-holdings) {
+  width: min(760px, calc(100vw - 48px));
+}
+.of-holdings {
+  display: grid;
+  gap: var(--space-3);
+}
+.of-holdings p {
+  margin: 0;
+}
+.of-holdings__actions {
+  display: flex;
+  justify-content: flex-end;
+}

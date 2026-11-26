@@ -271,7 +271,7 @@ Tarefas:
 - [x] Em Configurações → Integrações → Open Finance: campos para Client ID, Client Secret (guardado com `safeStorage`, nunca no Firestore) e os Item IDs, com um botão "Testar conexão".
 - [x] Todas as chamadas à API da Pluggy saem do processo principal do Electron.
 - [x] Sincronização: buscar as transações novas desde a última sincronização e passar pelo **mesmo fluxo de prévia + detecção de duplicados da Fase 6**. Nada entra no extrato sem o João confirmar (ou, se ele ativar, entra automático só o que não for duplicado).
-- [ ] Opcional: preencher a carteira de investimentos com as posições vindas da Pluggy, comparando com o que o João lançou à mão.
+- [x] Opcional: preencher a carteira de investimentos com as posições vindas da Pluggy, comparando com o que o João lançou à mão.
 - [x] Tudo somente leitura: nada de PIX, transferências ou pagamentos.
 
 ---
@@ -286,7 +286,8 @@ Notas da Fase 10:
 - **Sinal dos valores:** na conta, quem decide é o `type` (`DEBIT` sai, `CREDIT` entra). No cartão, positivo é gasto e negativo é pagamento ou estorno, que fica de fora. A conversão está em `domain/openFinance.ts`, com testes.
 - **Cartão:** a data da linha é a da compra (`purchaseDate`), para a detecção de duplicados bater com o que foi lançado à mão, parcelas inclusive. A fatura de cada lançamento sai da data em que o banco o lançou e do fechamento do cartão. Sem fechamento cadastrado, vale a fatura escolhida na tela.
 - **Sincronização:** "Buscar do Open Finance", em Importar extrato, traz todas as contas dos itens desde a última importação mais antiga, menos 3 dias; na primeira vez, os últimos 2 meses. As linhas passam pela mesma prévia e pela mesma detecção de duplicados da Fase 6. A data da última importação de cada conta fica em `settings/main.openFinanceSync`.
-- **Fora desta fase** (ficam para depois, se o João quiser): a importação automática sem prévia e o preenchimento da carteira de investimentos pela Pluggy (ambos opcionais no plano).
+- **Investimentos (feito em 25/11/2026):** o botão "Open Finance", na aba Investimentos, busca as posições ativas de todos os itens (`GET /investments`, em `fetchPluggyInvestments`) e mostra cada uma com o saldo no banco ao lado do valor no app. Renda variável é ligada pelo ticker e renda fixa pelo nome (`compareHoldings`, em `domain/openFinance.ts`). O que falta tem um botão "Lançar", que abre o formulário de operação ou de renda fixa já preenchido, com "Lançar no extrato" desligado. Nada é salvo sem você conferir e clicar em Salvar. Fundos, previdência e COE entram como "Outros", com 1 cota pelo valor aplicado. Só com dados reais dá para confirmar como cada corretora manda o indexador e a taxa.
+- **Fora desta fase** (fica para depois, se o João quiser): a importação automática sem prévia.
 - **Junto:** o `friendlyError` agora tira o prefixo técnico do Electron ("Error invoking remote method…") de qualquer erro que venha do processo principal.
 - **Falta o João:** criar a conta no Meu Pluggy e no Dashboard, colar as credenciais e os Item IDs em Integrações e fazer a primeira busca. Só com dados reais dá para confirmar o sinal dos valores de cada banco.
 

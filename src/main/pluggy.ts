@@ -1,4 +1,4 @@
-// Open Finance pelo Meu Pluggy (uso pessoal). Só leitura: auth, itens, contas e transações.
+// Open Finance pelo Meu Pluggy (uso pessoal). Só leitura: auth, itens, contas, transações e investimentos.
 // Tudo sai do processo principal; o Client Secret nunca chega à tela.
 // Documentação conferida em 19/11/2026: o GET /transactions antigo só vale até 31/12/2026,
 // por isso as transações vêm do GET /v2/transactions (cursor em `next`).
@@ -196,6 +196,101 @@ export async function fetchPluggy(
             })
           }
           query = result.next ?? ''
+        }
+      }
+    } catch (error) {
+      data.errors.push(`${bank}: ${(error as Error).message}`)
+    }
+  }
+  return data
+}
+
+// ---------- Investimentos ----------
+
+export type PluggyInvestment = {
+  id: string
+  bank: string
+  name: string
+  /** ticker (PETR4) quando a Pluggy manda */
+  code?: string
+  type: string
+  subtype?: string
+  /** saldo bruto de hoje, em reais como a Pluggy manda */
+  balance: number
+  /** quanto foi aplicado, em reais */
+  amountOriginal?: number
+  quantity?: number
+  /** preço da cota, em reais */
+  value?: number
+  /** YYYY-MM-DD */
+  purchaseDate?: string
+  dueDate?: string
+  rateType?: string
+  rate?: number
+  fixedAnnualRate?: number
+}
+
+export type PluggyInvestments = { investments: PluggyInvestment[]; errors: string[] }
+
+type RawInvestment = {
+  id: string
+  name?: string
+  code?: string | null
+  type: string
+  subtype?: string | null
+  status?: string | null
+  balance?: number | null
+  amount?: number | null
+  amountOriginal?: number | null
+  quantity?: number | null
+  value?: number | null
+  purchaseDate?: string | null
+  issueDate?: string | null
+  dueDate?: string | null
+  rateType?: string | null
+  rate?: number | null
+  fixedAnnualRate?: number | null
+}
+
+const optional = <T>(value: T | null | undefined): T | undefined => value ?? undefined
+const optionalDate = (value: string | null | undefined): string | undefined =>
+  value ? saoPauloDate(value) : undefined
+
+/** Posições de investimento de todos os itens (só as ativas e com saldo). */
+export async function fetchPluggyInvestments(creds: PluggyCredentials): Promise<PluggyInvestments> {
+  requireCredentials(creds)
+  const data: PluggyInvestments = { investments: [], errors: [] }
+
+  for (const itemId of creds.itemIds) {
+    let bank = itemId
+    try {
+      bank = (await get<RawItem>(creds, `/items/${itemId}`)).connector?.name ?? itemId
+      for (let page = 1, pages = 1; page <= pages && page <= 20; page++) {
+        const result = await get<{ results: RawInvestment[]; totalPages?: number }>(
+          creds,
+          `/investments?itemId=${itemId}&pageSize=500&page=${page}`
+        )
+        pages = result.totalPages ?? 1
+        for (const i of result.results) {
+          const balance = i.balance ?? i.amount ?? 0
+          if ((i.status && i.status !== 'ACTIVE') || balance <= 0) continue
+          data.investments.push({
+            id: i.id,
+            bank,
+            name: (i.name ?? '').trim() || i.code || 'Investimento',
+            code: optional(i.code)?.trim().toUpperCase() || undefined,
+            type: i.type,
+            subtype: optional(i.subtype),
+            balance,
+            amountOriginal: optional(i.amountOriginal),
+            quantity: optional(i.quantity),
+            value: optional(i.value),
+            purchaseDate: optionalDate(i.purchaseDate ?? i.issueDate),
+            dueDate: optionalDate(i.dueDate),
+            rateType: optional(i.rateType),
+            rate: optional(i.rate),
+            fixedAnnualRate: optional(i.fixedAnnualRate)
+          })
         }
       }
     } catch (error) {

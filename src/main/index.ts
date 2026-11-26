@@ -20,7 +20,13 @@ import icon from '../../resources/icon.png?asset'
 import { googleSignIn } from './googleAuth'
 import { fetchQuotes, fetchRates } from './market'
 import { setupUpdater } from './updater'
-import { fetchPluggy, parseItemIds, testPluggy, type PluggyCredentials } from './pluggy'
+import {
+  fetchPluggy,
+  fetchPluggyInvestments,
+  parseItemIds,
+  testPluggy,
+  type PluggyCredentials
+} from './pluggy'
 
 type ThemeSource = 'system' | 'light' | 'dark'
 
@@ -371,6 +377,7 @@ function registerIpc(): void {
   ipcMain.handle('pluggy:fetch', (_e, dateFrom: unknown) =>
     fetchPluggy(pluggyCredentials(), dateFrom)
   )
+  ipcMain.handle('pluggy:investments', () => fetchPluggyInvestments(pluggyCredentials()))
 
   ipcMain.handle('market:quotes', (_e, tickers: unknown, force: unknown) =>
     fetchQuotes(tickers, force === true, getSecret('brapi.token'), cacheStorage)
