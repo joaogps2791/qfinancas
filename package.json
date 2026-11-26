@@ -1,6 +1,6 @@
 {
   "name": "qfinancas",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Finanças pessoais do João",
   "main": "./out/main/index.js",
   "author": "João",
