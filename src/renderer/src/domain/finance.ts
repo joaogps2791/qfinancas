@@ -43,7 +43,15 @@ export type CardTransaction = Base &
      */
     firstInstallment?: number
     notes?: string
+    /**
+     * Crédito na fatura (pagamento antecipado): abate da fatura `invoiceDate` em vez de somar.
+     * `amountCents` continua positivo; sempre 1 parcela.
+     */
+    credit?: boolean
   }
+
+/** Categoria dos créditos na fatura (não entra nos gastos por categoria). */
+export const CARD_CREDIT_CATEGORY = 'Pagamento antecipado'
 
 export type Transaction = IncomeTransaction | CashTransaction | CardTransaction
 type WithoutId<T> = T extends unknown ? Omit<T, 'id'> : never
@@ -153,7 +161,8 @@ export function expandInstallments(transaction: CardTransaction): Installment[] 
         statementDate,
         statementMonth: monthKey(statementDate),
         installmentNumber: start + index,
-        installmentCents: cents
+        // crédito entra negativo: abate da fatura em todo lugar que soma as parcelas
+        installmentCents: transaction.credit ? -cents : cents
       }
     })
 }
@@ -248,12 +257,16 @@ export function summarizeEntries(
     entries.filter((e) => e.transaction.kind === kind).reduce((sum, e) => sum + e.amountCents, 0)
   const incomeCents = total('income')
   const cashCents = total('cash')
-  const cardCents = total('card')
-  const pendingCardCents = paid
-    ? entries
-        .filter((e) => e.transaction.kind === 'card' && !paid(e.transaction.card))
-        .reduce((sum, e) => sum + e.amountCents, 0)
-    : 0
+  // Só as compras; o crédito (negativo) já saiu da conta e só diminui o que falta pagar.
+  const cardCents = entries
+    .filter((e) => e.transaction.kind === 'card' && e.amountCents > 0)
+    .reduce((sum, e) => sum + e.amountCents, 0)
+  const openByCard = new Map<string, number>()
+  for (const e of entries) {
+    if (e.transaction.kind !== 'card' || !paid || paid(e.transaction.card)) continue
+    openByCard.set(e.transaction.card, (openByCard.get(e.transaction.card) ?? 0) + e.amountCents)
+  }
+  const pendingCardCents = [...openByCard.values()].reduce((sum, v) => sum + Math.max(v, 0), 0)
   const expenseCents = cashCents + cardCents - pendingCardCents
   return {
     incomeCents,
@@ -268,7 +281,9 @@ export function summarizeEntries(
 export function totalsByCategory(entries: MonthEntry[]): Record<string, number> {
   const totals: Record<string, number> = {}
   for (const { transaction, amountCents } of entries) {
-    if (transaction.kind === 'income') continue
+    if (transaction.kind === 'income' || (transaction.kind === 'card' && transaction.credit)) {
+      continue
+    }
     totals[transaction.category] = (totals[transaction.category] ?? 0) + amountCents
   }
   return totals
@@ -342,6 +357,8 @@ export function upcomingInvoices(
   }
   const next = new Map<string, UpcomingInvoice>()
   for (const invoice of invoices.values()) {
+    // quitada com pagamento antecipado: não tem o que pagar
+    if (invoice.totalCents <= 0) continue
     const current = next.get(invoice.card)
     if (!current || invoice.dueDate < current.dueDate) next.set(invoice.card, invoice)
   }

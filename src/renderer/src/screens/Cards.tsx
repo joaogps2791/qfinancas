@@ -63,6 +63,12 @@ export default function Cards(): React.JSX.Element {
     (e) => e.transaction.kind === 'card' && e.transaction.card === card?.name
   )
   const total = entries.reduce((sum, e) => sum + e.amountCents, 0)
+  const first = entries[0]?.transaction
+  const firstInvoiceDate = first?.kind === 'card' ? first.invoiceDate : undefined
+  // pagamentos antecipados (créditos) já abatidos do total
+  const credits = -entries
+    .filter((e) => e.amountCents < 0)
+    .reduce((sum, e) => sum + e.amountCents, 0)
 
   const prefill = editing && typeof editing === 'object' ? editing.prefill : undefined
   const form = (
@@ -218,6 +224,7 @@ export default function Cards(): React.JSX.Element {
               {entries.length} {entries.length === 1 ? 'lançamento' : 'lançamentos'}
               {dueDate && ` · vence ${formatDayMonth(dueDate)}`}
               {card.closingDay ? ` · fecha dia ${card.closingDay}` : ''}
+              {credits > 0 && ` · ${formatBRL(credits)} pagos antecipadamente`}
             </span>
           </div>
           <div className="invoice-summary__actions">
@@ -236,6 +243,20 @@ export default function Cards(): React.JSX.Element {
                   Marcar como paga
                 </Button>
               ))}
+            {!paid && total > 0 && (
+              <Button
+                size="sm"
+                onClick={() =>
+                  openComposer(undefined, {
+                    card: card.name,
+                    // fatura do mês na tela; sem dia de vencimento, a primeira compra dela diz o dia
+                    invoiceDate: dueDate ?? `${month}-${firstInvoiceDate?.slice(8) || '10'}`
+                  })
+                }
+              >
+                Pagamento antecipado
+              </Button>
+            )}
             <Button size="sm" icon={<Pencil size={14} />} onClick={() => setEditing('current')}>
               Editar cartão
             </Button>

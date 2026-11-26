@@ -1,8 +1,15 @@
 import { useState } from 'react'
-import { addTransactions, friendlyError, updateTransaction, useApp } from '../data/store'
+import {
+  addTransactions,
+  friendlyError,
+  updateTransaction,
+  useApp,
+  type ComposerCredit
+} from '../data/store'
 import { classifyCategory, type Card } from '../domain/categories'
 import {
   buildRecurringSeries,
+  CARD_CREDIT_CATEGORY,
   centsToInput,
   INCOME_TYPES,
   parseAmountToCents,
@@ -31,6 +38,8 @@ type FormState = {
   /** a fatura foi escolhida à mão (então não recalcula sozinha) */
   invoiceTouched: boolean
   installments: string
+  /** cartão: crédito na fatura (pagamento antecipado) em vez de compra */
+  credit: boolean
   recurring: boolean
   recurrenceCount: string
   notes: string
@@ -85,6 +94,7 @@ function initialState(editing: Transaction | undefined, cards: Card[], uid: stri
     invoiceDate: invoiceFor(cards, cards[0]?.name ?? '', today) ?? today,
     invoiceTouched: false,
     installments: '1',
+    credit: false,
     recurring: false,
     recurrenceCount: '12',
     notes: '',
@@ -118,15 +128,19 @@ function initialState(editing: Transaction | undefined, cards: Card[], uid: stri
     invoiceDate: editing.invoiceDate,
     invoiceTouched: true,
     installments: String(editing.installments),
+    credit: !!editing.credit,
     notes: editing.notes ?? ''
   }
 }
 
 export default function TransactionForm({
   editing,
+  credit,
   onDone
 }: {
   editing?: Transaction
+  /** abre como crédito na fatura deste cartão */
+  credit?: ComposerCredit
   onDone: () => void
 }): React.JSX.Element {
   const settings = useApp((s) => s.settings)
@@ -134,7 +148,12 @@ export default function TransactionForm({
   const cards = settings?.cards ?? []
   const categories = settings?.categories.map((c) => c.name) ?? []
 
-  const [form, setForm] = useState(() => initialState(editing, cards, uid))
+  const [form, setForm] = useState(() => {
+    const start = initialState(editing, cards, uid)
+    return credit
+      ? { ...start, kind: 'card' as const, ...credit, invoiceTouched: true, credit: true }
+      : start
+  })
   const selectedCard = cards.find((c) => c.name === form.card)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -159,7 +178,8 @@ export default function TransactionForm({
   const submit = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault()
     setError(null)
-    const description = form.description.trim()
+    const credit = form.kind === 'card' && form.credit
+    const description = form.description.trim() || (credit ? CARD_CREDIT_CATEGORY : '')
     const amountCents = parseAmountToCents(form.amount)
     if (!description) return setError('Escreva uma descrição.')
     if (!amountCents) return setError('Valor inválido. Use o formato 1.234,56.')
@@ -179,22 +199,33 @@ export default function TransactionForm({
       if (!Number.isInteger(installments) || installments < 1 || installments > 72) {
         return setError('Parcelas: de 1 a 72.')
       }
-      input = {
-        ...base,
-        kind: 'card',
-        category,
-        card: form.card,
-        invoiceDate: form.invoiceDate,
-        installments: form.recurring ? 1 : installments,
-        // compra que veio no meio do Open Finance continua começando na mesma parcela
-        ...(editing?.kind === 'card' &&
-        editing.firstInstallment &&
-        !form.recurring &&
-        editing.firstInstallment <= installments
-          ? { firstInstallment: editing.firstInstallment }
-          : {}),
-        notes: form.notes.trim() || undefined
-      }
+      input = credit
+        ? {
+            ...base,
+            kind: 'card',
+            category: CARD_CREDIT_CATEGORY,
+            card: form.card,
+            invoiceDate: form.invoiceDate,
+            installments: 1,
+            credit: true,
+            notes: form.notes.trim() || undefined
+          }
+        : {
+            ...base,
+            kind: 'card',
+            category,
+            card: form.card,
+            invoiceDate: form.invoiceDate,
+            installments: form.recurring ? 1 : installments,
+            // compra que veio no meio do Open Finance continua começando na mesma parcela
+            ...(editing?.kind === 'card' &&
+            editing.firstInstallment &&
+            !form.recurring &&
+            editing.firstInstallment <= installments
+              ? { firstInstallment: editing.firstInstallment }
+              : {}),
+            notes: form.notes.trim() || undefined
+          }
     }
 
     setSaving(true)
@@ -229,7 +260,8 @@ export default function TransactionForm({
     }
   }
 
-  const isExpense = form.kind !== 'income'
+  const isCredit = form.kind === 'card' && form.credit
+  const isExpense = form.kind !== 'income' && !isCredit
 
   return (
     <form className="tx-form" onSubmit={submit} noValidate>
@@ -244,7 +276,13 @@ export default function TransactionForm({
         label="Descrição"
         value={form.description}
         onChange={(e) => set({ description: e.target.value })}
-        placeholder={form.kind === 'income' ? 'Ex.: Salário' : 'Ex.: Mercado, Netflix'}
+        placeholder={
+          isCredit
+            ? CARD_CREDIT_CATEGORY
+            : form.kind === 'income'
+              ? 'Ex.: Salário'
+              : 'Ex.: Mercado, Netflix'
+        }
         autoFocus
       />
       <div className="form-grid">
@@ -256,7 +294,7 @@ export default function TransactionForm({
           onChange={(e) => set({ amount: e.target.value })}
         />
         <Input
-          label={form.kind === 'card' ? 'Data da compra' : 'Data'}
+          label={isCredit ? 'Data do pagamento' : form.kind === 'card' ? 'Data da compra' : 'Data'}
           type="date"
           value={form.date}
           onChange={(e) => set({ date: e.target.value })}
@@ -295,6 +333,11 @@ export default function TransactionForm({
 
       {form.kind === 'card' && (
         <>
+          <Toggle
+            label="Crédito na fatura (pagamento antecipado)"
+            checked={form.credit}
+            onChange={(credit) => set({ credit, ...(credit ? { recurring: false } : {}) })}
+          />
           <div className="form-grid">
             <div className="tx-form__card">
               {selectedCard && <CardArt card={selectedCard} size="sm" />}
@@ -306,13 +349,15 @@ export default function TransactionForm({
               />
             </div>
             <Input
-              label="Vencimento da fatura"
+              label={isCredit ? 'Abate da fatura que vence em' : 'Vencimento da fatura'}
               type="date"
               value={form.invoiceDate}
               hint={
-                invoiceFor(cards, form.card, form.date)
-                  ? 'Sugerida pelo fechamento do cartão.'
-                  : undefined
+                isCredit
+                  ? 'O valor sai da conta agora e diminui o que falta pagar nessa fatura.'
+                  : invoiceFor(cards, form.card, form.date)
+                    ? 'Sugerida pelo fechamento do cartão.'
+                    : undefined
               }
               onChange={(e) => set({ invoiceDate: e.target.value, invoiceTouched: true })}
             />
@@ -323,8 +368,8 @@ export default function TransactionForm({
               type="number"
               min={1}
               max={72}
-              value={form.recurring ? '1' : form.installments}
-              disabled={form.recurring}
+              value={form.recurring || isCredit ? '1' : form.installments}
+              disabled={form.recurring || isCredit}
               onChange={(e) => set({ installments: e.target.value })}
             />
             <Input

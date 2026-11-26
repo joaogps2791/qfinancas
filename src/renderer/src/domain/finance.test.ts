@@ -264,6 +264,27 @@ describe('upcomingInvoices', () => {
       { card: 'Nubank', dueDate: '2027-01-10', totalCents: 15000, count: 1 }
     ])
   })
+  it('pagamento antecipado abate da fatura e já conta como saída', () => {
+    const credit = card({
+      description: 'Pagamento antecipado',
+      category: 'Pagamento antecipado',
+      amountCents: 10000,
+      installments: 1,
+      invoiceDate: '2026-12-10',
+      date: '2026-12-01',
+      credit: true
+    })
+    // fatura de dezembro: 150,00 de compra − 100,00 de crédito
+    expect(upcomingInvoices([tx, credit], cards, '2026-12-05')[0].totalCents).toBe(5000)
+    const entries = monthEntries([tx, credit], '2026-12')
+    const unpaid = summarizeEntries(entries, () => false)
+    expect(unpaid).toMatchObject({ cardCents: 15000, pendingCardCents: 5000, expenseCents: 10000 })
+    expect(summarizeEntries(entries, () => true).expenseCents).toBe(15000)
+    expect(totalsByCategory(entries)).toEqual({ Educação: 15000 })
+    // quitada antes do vencimento: some dos vencimentos
+    const all = card({ ...credit, amountCents: 15000 })
+    expect(upcomingInvoices([tx, all], cards, '2026-12-05')[0].dueDate).toBe('2027-01-10')
+  })
   it('só a fatura paga conta nas saídas; mês passado conta como pago', () => {
     const paid = invoicePaidBy([{ name: 'Nubank', paidInvoices: ['2027-01'] }], '2026-12-20')
     const dec = summarizeEntries(monthEntries([tx], '2026-12'), (c) => paid(c, '2026-12'))

@@ -142,12 +142,19 @@ export default function Shell(): React.JSX.Element {
       <Modal
         open={!!composer}
         onClose={closeComposer}
-        title={composer?.editing ? 'Editar lançamento' : 'Novo lançamento'}
+        title={
+          composer?.editing
+            ? 'Editar lançamento'
+            : composer?.credit
+              ? 'Pagamento antecipado'
+              : 'Novo lançamento'
+        }
       >
         {composer && (
           <TransactionForm
-            key={composer.editing?.id ?? 'new'}
+            key={composer.editing?.id ?? (composer.credit ? 'credit' : 'new')}
             editing={composer.editing}
+            credit={composer.credit}
             onDone={closeComposer}
           />
         )}

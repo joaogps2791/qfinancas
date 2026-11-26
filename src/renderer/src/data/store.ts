@@ -79,8 +79,11 @@ type AppState = {
   /** mês que as telas mostram (YYYY-MM), compartilhado entre Dashboard, Transações e Cartões */
   month: string
   /** formulário de lançamento aberto (null = fechado; com `editing` = edição) */
-  composer: { editing?: Transaction } | null
+  composer: { editing?: Transaction; credit?: ComposerCredit } | null
 }
+
+/** Crédito na fatura já preenchido (botão "Pagamento antecipado" em Cartões). */
+export type ComposerCredit = { card: string; invoiceDate: string }
 
 export const useApp = create<AppState>(() => ({
   user: undefined,
@@ -102,8 +105,8 @@ export const useApp = create<AppState>(() => ({
 export const shiftMonth = (months: number): void =>
   useApp.setState((s) => ({ month: shiftMonthKey(s.month, months) }))
 export const goToToday = (): void => useApp.setState({ month: monthKey(todayISO()) })
-export const openComposer = (editing?: Transaction): void =>
-  useApp.setState({ composer: { editing } })
+export const openComposer = (editing?: Transaction, credit?: ComposerCredit): void =>
+  useApp.setState({ composer: { editing, credit } })
 export const closeComposer = (): void => useApp.setState({ composer: null })
 
 const userPath = (uid: string, ...segments: string[]): [string, ...string[]] => [

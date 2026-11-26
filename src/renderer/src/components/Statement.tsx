@@ -91,7 +91,7 @@ export default function Statement({
     })
   const toggleAll = (): void =>
     setSelected(allChosen ? new Set() : new Set(visibleTx.map((t) => t.id)))
-  const withCategory = chosen.filter((t) => t.kind !== 'income')
+  const withCategory = chosen.filter((t) => t.kind !== 'income' && !(t.kind === 'card' && t.credit))
   const changeCategory = (category: string): void => {
     if (!category) return
     setTransactionsCategory(
@@ -191,7 +191,8 @@ export default function Statement({
         <ul className="statement__list">
           {visible.map((entry) => {
             const t = entry.transaction
-            const income = t.kind === 'income'
+            // crédito na fatura vem negativo e aparece como entrada no cartão
+            const income = t.kind === 'income' || entry.amountCents < 0
             return (
               <li
                 key={`${t.id}-${entry.installmentNumber ?? 0}`}
@@ -213,7 +214,7 @@ export default function Statement({
                 </div>
                 <span className="statement__date">{formatDayMonth(entry.date)}</span>
                 <span className={income ? 'statement__value positive' : 'statement__value'}>
-                  {income ? '+' : '−'} {formatBRL(entry.amountCents)}
+                  {income ? '+' : '−'} {formatBRL(Math.abs(entry.amountCents))}
                 </span>
                 <Menu
                   label={`Ações de ${t.description}`}
