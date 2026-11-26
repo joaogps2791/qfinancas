@@ -67,14 +67,16 @@ describe('pluggyRows', () => {
     ])
   })
 
-  it('cartão: positivo é gasto, negativo é pagamento; parcela com data da compra e fatura do lançamento', () => {
+  it('cartão: positivo é gasto, negativo é pagamento; parcela vira a compra inteira parcelada', () => {
     const rows = pluggyRows(data, 'cartao', { closingDay: 3, dueDay: 10 })
     expect(rows).toEqual([
+      // 3/5 de R$ 120 lançada em 16/11 (fatura de dez) → R$ 600 em 5x desde a fatura de out
       {
         date: '2026-09-03',
-        description: 'Loja Exemplo (3/5)',
-        amountCents: -12000,
-        invoiceDate: '2026-12-10'
+        description: 'Loja Exemplo',
+        amountCents: -60000,
+        installments: 5,
+        invoiceDate: '2026-10-10'
       },
       {
         date: '2026-11-10',
@@ -288,4 +290,72 @@ it('cartão antigo sem banco salvo é reconhecido pelo nome', () => {
     [{ name: 'Nubank', color: '#8a05be' }]
   )
   expect(r.existing).toBe('Nubank')
+})
+
+describe('pluggyRows: parcelas do cartão', () => {
+  const parcel = (
+    id: string,
+    date: string,
+    n: number,
+    extra: Partial<PluggyData['transactions'][number]> = {}
+  ): PluggyData['transactions'][number] => ({
+    id,
+    accountId: 'cartao',
+    date,
+    description: `MAGAZINE LOJA PARC ${String(n).padStart(2, '0')}/10`,
+    amount: 250,
+    type: 'DEBIT',
+    purchaseDate: '2026-08-20',
+    installmentNumber: n,
+    totalInstallments: 10,
+    ...extra
+  })
+  const withParcels = (transactions: PluggyData['transactions']): PluggyData => ({
+    ...data,
+    transactions
+  })
+
+  it('várias parcelas da mesma compra viram uma compra só, a partir da 1ª fatura', () => {
+    const rows = pluggyRows(
+      withParcels([parcel('a', '2026-11-20', 4), parcel('b', '2026-10-20', 3)]),
+      'cartao',
+      { closingDay: 3, dueDay: 10 }
+    )
+    expect(rows).toEqual([
+      {
+        date: '2026-08-20',
+        description: 'MAGAZINE LOJA',
+        amountCents: -250_000,
+        installments: 10,
+        // parcela 3 lançada em 20/10 → fatura de 10/11; a 1ª foi em 10/09
+        invoiceDate: '2026-09-10'
+      }
+    ])
+  })
+
+  it('usa o valor total da compra quando o banco manda', () => {
+    const [row] = pluggyRows(
+      withParcels([parcel('a', '2026-11-20', 4, { totalAmount: 2499.9 })]),
+      'cartao'
+    )
+    expect(row).toMatchObject({ amountCents: -249_990, installments: 10, invoiceDate: undefined })
+  })
+
+  it('compras parceladas diferentes no mesmo dia continuam separadas', () => {
+    const rows = pluggyRows(
+      withParcels([
+        parcel('a', '2026-11-20', 4),
+        parcel('b', '2026-11-20', 1, {
+          amount: 99,
+          description: 'Outra loja',
+          purchaseDate: '2026-11-15'
+        })
+      ]),
+      'cartao'
+    )
+    expect(rows.map((r) => [r.description, r.installments])).toEqual([
+      ['MAGAZINE LOJA', 10],
+      ['Outra loja', 10]
+    ])
+  })
 })

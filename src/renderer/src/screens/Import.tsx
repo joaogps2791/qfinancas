@@ -427,6 +427,7 @@ export default function Import(): React.JSX.Element {
                           <td className={`num ${row.amountCents > 0 ? 'positive' : ''}`}>
                             {row.amountCents > 0 ? '+ ' : '− '}
                             {formatBRL(Math.abs(row.amountCents))}
+                            {row.installments && <small>em {row.installments}x</small>}
                           </td>
                         </tr>
                       )

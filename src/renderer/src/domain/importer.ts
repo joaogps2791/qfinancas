@@ -9,6 +9,8 @@ export type ImportRow = {
   amountCents: number
   /** cartão: fatura desta linha (Open Finance); sem ela vale a fatura escolhida na tela */
   invoiceDate?: string
+  /** cartão: compra parcelada (Open Finance); `amountCents` é o total e `invoiceDate` a 1ª fatura */
+  installments?: number
 }
 
 /** Bancos brasileiros ainda exportam em Windows-1252; tenta UTF-8 primeiro. */
@@ -328,7 +330,7 @@ export type ImportTarget =
   | { destination: 'account'; paymentMethod: string }
   | { destination: 'card'; card: string; invoiceDate: string }
 
-/** Linha da prévia → lançamento. Na conta, crédito vira entrada; no cartão, compra em 1x. */
+/** Linha da prévia → lançamento. Na conta, crédito vira entrada; no cartão, compra em 1x ou parcelada. */
 export function toTransaction(row: PreviewRow, target: ImportTarget): TransactionInput {
   const base = {
     description: row.description || 'Sem descrição',
@@ -342,7 +344,7 @@ export function toTransaction(row: PreviewRow, target: ImportTarget): Transactio
       category: row.category,
       card: target.card,
       invoiceDate: row.invoiceDate ?? target.invoiceDate,
-      installments: 1
+      installments: row.installments ?? 1
     }
   }
   if (row.amountCents > 0) return { ...base, kind: 'income', incomeType: row.category }

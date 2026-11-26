@@ -40,6 +40,8 @@ export type PluggyTransaction = {
   purchaseDate?: string
   installmentNumber?: number
   totalInstallments?: number
+  /** cartão: valor da compra inteira (em reais), quando o banco manda */
+  totalAmount?: number
 }
 
 export type PluggyData = {
@@ -147,6 +149,7 @@ type RawTransaction = {
     purchaseDate?: string
     installmentNumber?: number
     totalInstallments?: number
+    totalAmount?: number
   }
 }
 
@@ -192,6 +195,7 @@ export async function fetchPluggy(
               type: t.type,
               purchaseDate: meta?.purchaseDate ? saoPauloDate(meta.purchaseDate) : undefined,
               installmentNumber: meta?.installmentNumber,
+              totalAmount: meta?.totalAmount,
               totalInstallments: meta?.totalInstallments
             })
           }

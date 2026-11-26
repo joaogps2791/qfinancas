@@ -2,7 +2,7 @@
 import type { PluggyCard, PluggyData, PluggyInvestment } from '../../../main/pluggy'
 import { normalizeText as plain, type Card } from './categories'
 import { issuerOf, type Issuer, type Network } from './cardSkins'
-import { suggestInvoiceDate } from './finance'
+import { addMonths, suggestInvoiceDate } from './finance'
 import type { ImportRow } from './importer'
 import type { AssetType, FixedIncome, Indexer, InvestmentTransaction } from './investments'
 
@@ -10,8 +10,11 @@ import type { AssetType, FixedIncome, Indexer, InvestmentTransaction } from './i
  * Converte as transações de uma conta da Pluggy. Negativo = saída, como no resto da importação.
  * - Conta: `type` DEBIT é saída e CREDIT é entrada.
  * - Cartão: valor positivo é gasto e negativo é pagamento/estorno (documentação da Pluggy).
- *   A data da linha é a da compra (bate com o que foi lançado à mão, parcelas inclusive) e a
- *   fatura sai da data de lançamento e do fechamento do cartão, quando ele está configurado.
+ *   A data da linha é a da compra (bate com o que foi lançado à mão) e a fatura sai da data de
+ *   lançamento e do fechamento do cartão, quando ele está configurado.
+ * - Cartão parcelado: a Pluggy manda cada parcela como uma transação ("3/5" de R$ 120). Todas as
+ *   parcelas da mesma compra viram UMA compra parcelada (total em 5x), como no lançamento à mão,
+ *   começando na fatura da 1ª parcela.
  */
 export function pluggyRows(
   data: PluggyData,
@@ -20,32 +23,61 @@ export function pluggyRows(
 ): ImportRow[] {
   const account = data.accounts.find((a) => a.id === accountId)
   if (!account) return []
-  return data.transactions
-    .filter((t) => t.accountId === accountId)
-    .map((t) => {
-      // A Pluggy manda reais com casas decimais; só aqui vira centavo inteiro.
-      const cents = Math.round(Math.abs(t.amount) * 100)
-      const parcel =
-        t.totalInstallments && t.totalInstallments > 1
-          ? ` (${t.installmentNumber}/${t.totalInstallments})`
-          : ''
-      const description = `${t.description || 'Sem descrição'}${parcel}`
-      if (account.type === 'BANK') {
-        return { date: t.date, description, amountCents: t.type === 'DEBIT' ? -cents : cents }
-      }
-      return {
+  const invoiceOf = (date: string, shift = 0): string | undefined =>
+    card?.closingDay && card.dueDay
+      ? addMonths(suggestInvoiceDate(date, card.closingDay, card.dueDay), shift)
+      : undefined
+
+  const rows: ImportRow[] = []
+  const purchases = new Map<string, { number: number; row: ImportRow }>()
+  for (const t of data.transactions.filter((t) => t.accountId === accountId)) {
+    // A Pluggy manda reais com casas decimais; só aqui vira centavo inteiro.
+    const cents = Math.round(Math.abs(t.amount) * 100)
+    const label = t.description || 'Sem descrição'
+    const total = t.totalInstallments ?? 1
+    if (account.type === 'BANK') {
+      rows.push({
+        date: t.date,
+        description: total > 1 ? `${label} (${t.installmentNumber}/${total})` : label,
+        amountCents: t.type === 'DEBIT' ? -cents : cents
+      })
+      continue
+    }
+    if (total < 2 || t.amount <= 0) {
+      rows.push({
         date: t.purchaseDate ?? t.date,
-        description,
+        description: label,
         amountCents: t.amount > 0 ? -cents : cents,
-        invoiceDate:
-          card?.closingDay && card.dueDay
-            ? suggestInvoiceDate(t.date, card.closingDay, card.dueDay)
-            : undefined
+        invoiceDate: invoiceOf(t.date)
+      })
+      continue
+    }
+    const number = t.installmentNumber ?? 1
+    const description = label.replace(INSTALLMENT_SUFFIX, '') || label
+    const date = t.purchaseDate ?? t.date
+    const key = `${date}|${plain(description)}|${total}|${cents}`
+    const known = purchases.get(key)
+    if (known && known.number <= number) continue
+    purchases.set(key, {
+      number,
+      row: {
+        date,
+        description,
+        amountCents: -(t.totalAmount ? Math.round(Math.abs(t.totalAmount) * 100) : cents * total),
+        installments: total,
+        // a parcela N cai N-1 faturas depois da 1ª
+        invoiceDate: invoiceOf(t.date, -(number - 1))
       }
     })
+  }
+  return [...rows, ...[...purchases.values()].map((p) => p.row)]
     .filter((row) => row.amountCents !== 0)
     .sort((a, b) => a.date.localeCompare(b.date))
 }
+
+// "LOJA X PARC 03/05", "Loja X 3/5", "Loja X - 03/05": o número da parcela que alguns bancos
+// põem no texto (a parcela já vem nos campos da Pluggy).
+const INSTALLMENT_SUFFIX = /\s*-?\s*(?:parc(?:ela)?\.?\s*)?\d{1,2}\s*\/\s*\d{1,2}\s*$/i
 
 // ---------- Investimentos (Pluggy × carteira lançada à mão) ----------
 
